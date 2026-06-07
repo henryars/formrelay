@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FormRelay
 
-## Getting Started
+FormRelay is a universal form backend for static, no-code, and AI-built websites. This repository keeps the frontend, API routes, Prisma schema, and infrastructure setup in one Next.js codebase.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router for frontend and backend routes
+- PostgreSQL for data storage
+- Prisma for ORM and schema management
+- AWS SES for notification email delivery
+- Docker for local parity and AWS Lightsail deployment readiness
+
+## Quick start
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Start PostgreSQL with Docker:
+
+```bash
+docker compose up postgres -d
+```
+
+This exposes PostgreSQL locally on port `5188`.
+
+3. Generate Prisma client and push the schema:
+
+```bash
+npx prisma generate
+npx prisma db push
+npm run db:seed
+```
+
+4. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Or run the full local stack with Docker:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+docker compose up
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Verification
 
-## Learn More
+Run the current regression suite:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run test
+npm run lint
+npm run build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run the local stack smoke test after the app is running:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run smoke:e2e
+```
 
-## Deploy on Vercel
+## Key routes
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `/` marketing site
+- `/dashboard` application overview shell
+- `/dashboard/submissions` clean and suspicious submissions
+- `/dashboard/spam` blocked spam inbox
+- `/docs` product documentation shell
+- `/pricing` pricing preview
+- `/api/health` service health check
+- `/f/[publicFormId]` public form submission endpoint
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Demo seed
+
+After `npm run db:seed`, you can log in with:
+
+- `demo@formrelay.local`
+- `demo12345`
+
+## Migrations
+
+The repo now includes a baseline Prisma migration in `prisma/migrations`. If your local database was created before the newer schema fields were added, apply the manual sync file once:
+
+```bash
+docker cp prisma/manual-sync.sql formrelay-postgres-1:/tmp/manual-sync.sql
+docker exec formrelay-postgres-1 psql -U formrelay -d formrelay -f /tmp/manual-sync.sql
+```
+
+## Remaining Product Work
+
+- Connect real SES delivery and password-reset emails
+- Wire real billing and usage enforcement
+- Add edit/pause/delete flows for websites and forms
+- Add stronger filtering, bulk actions, and archive/delete UX in submissions
+- Add file uploads, webhooks, and deeper workflow automations in later phases
