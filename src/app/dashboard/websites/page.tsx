@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { Globe, Plus, ArrowRight, FileText, Inbox } from "lucide-react";
 
-import { DashboardNav } from "@/components/dashboard-nav";
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -13,63 +17,91 @@ export default async function WebsitesPage() {
     orderBy: { createdAt: "desc" },
     include: {
       forms: true,
-      _count: {
-        select: {
-          submissions: true,
-        },
-      },
+      _count: { select: { submissions: true } },
     },
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-10 md:px-8">
-      <section className="rounded-[20px] bg-white p-8 shadow-subtle">
-        <p className="text-sm font-medium text-invoice-blue">Websites</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-midnight-ink">
-          All registered properties in this workspace.
-        </h1>
-        <div className="mt-6">
-          <DashboardNav />
-        </div>
-      </section>
+    <div className="px-8 py-8 max-w-4xl mx-auto space-y-8">
+      <PageHeader
+        label="Websites"
+        title="Registered websites"
+        description="Each website groups your form inboxes and submission history."
+      >
+        <Link href="/dashboard/websites/new">
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Add website
+          </Button>
+        </Link>
+      </PageHeader>
 
-      <section className="rounded-[20px] bg-white p-6 shadow-subtle">
-        {websites.length ? (
-          <div className="overflow-hidden rounded-[20px] border border-[#eef2f5]">
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-cool-mist text-sm text-graphite-mute">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Website</th>
-                  <th className="px-4 py-3 font-medium">Forms</th>
-                  <th className="px-4 py-3 font-medium">Submissions</th>
-                  <th className="px-4 py-3 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {websites.map((website) => (
-                  <tr key={website.id} className="border-t border-[#eef2f5]">
-                    <td className="px-4 py-4">
-                      <p className="font-medium text-midnight-ink">{website.websiteName}</p>
-                      <p className="text-sm text-graphite-mute">{website.websiteUrl}</p>
-                    </td>
-                    <td className="px-4 py-4 text-charcoal-whisper">{website.forms.length}</td>
-                    <td className="px-4 py-4 text-charcoal-whisper">{website._count.submissions}</td>
-                    <td className="px-4 py-4">
-                      <Link href={`/dashboard/websites/${website.id}`} className="text-sm font-medium text-midnight-ink">
-                        View detail
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="rounded-[20px] bg-cool-mist p-6 text-charcoal-whisper">
-            No websites yet. Create your first one to begin onboarding.
-          </div>
-        )}
-      </section>
-    </main>
+      {websites.length === 0 ? (
+        <Card className="border-dashed border-2 border-[#e4e4e7]">
+          <CardContent className="py-16 flex flex-col items-center text-center gap-5">
+            <div className="h-14 w-14 rounded-full bg-[#f4f4f5] flex items-center justify-center">
+              <Globe className="h-7 w-7 text-[#a1a1aa]" />
+            </div>
+            <div>
+              <p className="font-semibold text-[#09090b] text-lg">No websites yet</p>
+              <p className="text-sm text-[#71717a] mt-2 max-w-sm">
+                Add a website to start creating form inboxes. Once you have a form inbox, copy the endpoint URL into your HTML form.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/dashboard/websites/new">
+                <Button className="gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Add your first website
+                </Button>
+              </Link>
+              <Link href="/dashboard/onboarding">
+                <Button variant="ghost" className="gap-1">
+                  Setup guide <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {websites.map((website) => (
+            <Link key={website.id} href={`/dashboard/websites/${website.id}`}>
+              <Card className="hover:shadow-md transition-all hover:border-[#d4d4d8] cursor-pointer h-full">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                      <Globe className="h-4.5 w-4.5 text-blue-600" />
+                    </div>
+                    <Badge variant="secondary" className="text-xs">{website.forms.length} form{website.forms.length !== 1 ? "s" : ""}</Badge>
+                  </div>
+                  <p className="font-semibold text-[#09090b]">{website.websiteName}</p>
+                  <p className="text-xs text-[#a1a1aa] mt-1 truncate">{website.websiteUrl}</p>
+                  <div className="mt-4 flex items-center gap-4 text-xs text-[#71717a]">
+                    <span className="flex items-center gap-1">
+                      <FileText className="h-3.5 w-3.5" />
+                      {website.forms.length} form inbox{website.forms.length !== 1 ? "es" : ""}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Inbox className="h-3.5 w-3.5" />
+                      {website._count.submissions} submission{website._count.submissions !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+          {/* Add new card */}
+          <Link href="/dashboard/websites/new">
+            <Card className="border-dashed border-2 border-[#e4e4e7] hover:border-[#0098f2] hover:bg-blue-50/30 transition-all cursor-pointer h-full">
+              <CardContent className="p-6 h-full flex flex-col items-center justify-center text-center gap-2 min-h-[140px]">
+                <Plus className="h-5 w-5 text-[#a1a1aa]" />
+                <p className="text-sm font-medium text-[#71717a]">Add website</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { Inbox, Download, ArrowRight } from "lucide-react";
 
-import { DashboardNav } from "@/components/dashboard-nav";
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseFieldItems } from "@/lib/submission-json";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -13,118 +17,103 @@ export default async function SubmissionsPage() {
   const submissions = await prisma.submission.findMany({
     where: {
       workspaceId: workspace.id,
-      spamStatus: {
-        in: ["CLEAN", "SUSPICIOUS"],
-      },
+      spamStatus: { in: ["CLEAN", "SUSPICIOUS"] },
     },
     orderBy: { createdAt: "desc" },
-    include: {
-      website: true,
-      form: true,
-    },
+    include: { website: true, form: true },
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-10 md:px-8">
-      <section className="rounded-[20px] bg-white p-8 shadow-subtle">
-        <p className="text-sm font-medium text-invoice-blue">Submissions</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-midnight-ink">
-          Clean and reviewable leads in one table.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-8 text-charcoal-whisper">
-          These are the submissions your team should care about first. Spam stays separated so the
-          inbox remains usable.
-        </p>
-        <div className="mt-6">
-          <DashboardNav />
-        </div>
-        <div className="mt-6">
-          <Link href="/dashboard/submissions/export" className="button-secondary">
+    <div className="px-8 py-8 max-w-5xl mx-auto space-y-8">
+      <PageHeader
+        label="Submissions"
+        title="Inbox"
+        description="Clean and reviewable submissions across all your forms."
+      >
+        <Link href="/dashboard/submissions/export">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Download className="h-3.5 w-3.5" />
             Export CSV
-          </Link>
-        </div>
-      </section>
+          </Button>
+        </Link>
+      </PageHeader>
 
-      <section className="rounded-[20px] bg-white p-6 shadow-subtle">
-        {submissions.length ? (
-          <div className="overflow-hidden rounded-[20px] border border-[#eef2f5]">
-            <table className="w-full border-collapse text-left">
-              <thead className="bg-cool-mist text-sm text-graphite-mute">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Sender</th>
-                  <th className="px-4 py-3 font-medium">Website</th>
-                  <th className="px-4 py-3 font-medium">Form</th>
-                  <th className="px-4 py-3 font-medium">Preview</th>
-                </tr>
-              </thead>
-              <tbody>
-                {submissions.map((submission) => {
-                  const fieldItems = parseFieldItems(submission.fieldItems);
-                  const primaryFields = fieldItems.slice(0, 3);
+      {submissions.length === 0 ? (
+        <Card className="border-dashed border-2 border-[#e4e4e7]">
+          <CardContent className="py-16 flex flex-col items-center text-center gap-5">
+            <div className="h-14 w-14 rounded-full bg-[#f4f4f5] flex items-center justify-center">
+              <Inbox className="h-7 w-7 text-[#a1a1aa]" />
+            </div>
+            <div>
+              <p className="font-semibold text-[#09090b] text-lg">No submissions yet</p>
+              <p className="text-sm text-[#71717a] mt-2 max-w-sm">
+                Once you connect a form and someone submits it, entries will appear here.
+              </p>
+            </div>
+            <Link href="/dashboard/forms">
+              <Button className="gap-1">
+                Set up a form <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{submissions.length} submission{submissions.length !== 1 ? "s" : ""}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-[#f4f4f5]">
+              {submissions.map((sub) => {
+                const fieldItems = parseFieldItems(sub.fieldItems);
+                const topFields = fieldItems.slice(0, 3);
 
-                  return (
-                    <tr key={submission.id} className="border-t border-[#eef2f5] align-top">
-                      <td className="px-4 py-4">
-                        <span className="rounded-full bg-cool-mist px-3 py-1 text-sm text-midnight-ink">
-                          {submission.status}
-                        </span>
-                        <div className="mt-2">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs ${
-                              submission.spamStatus === "SUSPICIOUS"
-                                ? "bg-wash-petal text-midnight-ink"
-                                : "bg-wash-sky text-midnight-ink"
-                            }`}
-                          >
-                            {submission.spamStatus === "SUSPICIOUS"
-                              ? `Suspicious • ${submission.spamScore}`
-                              : "Looks okay"}
-                          </span>
+                return (
+                  <Link
+                    key={sub.id}
+                    href={`/dashboard/submissions/${sub.id}`}
+                    className="flex items-start gap-4 px-6 py-4 hover:bg-[#fafafa] transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-[#09090b]">
+                          {sub.submitterName ?? "Unknown sender"}
+                        </p>
+                        {sub.spamStatus === "SUSPICIOUS" && (
+                          <Badge variant="warning" className="text-xs">Suspicious · {sub.spamScore}</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#a1a1aa]">{sub.submitterEmail ?? "No email detected"}</p>
+                      {sub.messagePreview && (
+                        <p className="text-xs text-[#71717a] mt-2 line-clamp-2">{sub.messagePreview}</p>
+                      )}
+                      {topFields.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {topFields.map((field, i) => (
+                            <span
+                              key={`${sub.id}-${field.key ?? i}`}
+                              className="text-xs bg-[#f4f4f5] text-[#52525b] px-2 py-0.5 rounded-full"
+                            >
+                              {field.label ?? field.key}: {Array.isArray(field.value) ? field.value.join(", ") : field.value}
+                            </span>
+                          ))}
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Link href={`/dashboard/submissions/${submission.id}`} className="block">
-                        <p className="font-medium text-midnight-ink">
-                          {submission.submitterName ?? "Unknown sender"}
-                        </p>
-                        <p className="text-sm text-graphite-mute">
-                          {submission.submitterEmail ?? "No email detected"}
-                        </p>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-4 text-charcoal-whisper">{submission.website.websiteName}</td>
-                      <td className="px-4 py-4 text-charcoal-whisper">{submission.form.formName}</td>
-                      <td className="px-4 py-4">
-                        <p className="max-w-sm text-sm leading-7 text-charcoal-whisper">
-                          {submission.messagePreview ?? "Submission stored successfully."}
-                        </p>
-                        {primaryFields.length ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {primaryFields.map((field, index) => (
-                              <span
-                                key={`${submission.id}-${field.key ?? index}`}
-                                className="rounded-full bg-wash-sky px-3 py-1 text-xs text-midnight-ink"
-                              >
-                                {field.label ?? field.key}:{" "}
-                                {Array.isArray(field.value) ? field.value.join(", ") : field.value}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="rounded-[20px] bg-cool-mist p-6 text-charcoal-whisper">
-            No non-spam submissions yet. Seed the database or submit a test form to populate this page.
-          </div>
-        )}
-      </section>
-    </main>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <Badge variant="secondary" className="text-xs">{sub.form.formName}</Badge>
+                      <p className="text-xs text-[#a1a1aa]">{sub.website.websiteName}</p>
+                      <Badge variant={sub.status === "NEW" ? "blue" : "outline"} className="text-xs">
+                        {sub.status}
+                      </Badge>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

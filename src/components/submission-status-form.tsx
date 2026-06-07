@@ -1,11 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
-
-import {
-  updateSubmissionStatusAction,
-  type SubmissionActionState,
-} from "@/app/actions/submissions";
+import { updateSubmissionStatusAction, type SubmissionActionState } from "@/app/actions/submissions";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 const initialState: SubmissionActionState = {};
 
@@ -19,31 +17,26 @@ export function SubmissionStatusForm({
   const [state, formAction, pending] = useActionState(updateSubmissionStatusAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="submissionId" value={submissionId} />
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-midnight-ink">Lead status</span>
+      <div className="space-y-1.5">
+        <Label htmlFor="status">Lead status</Label>
         <select
+          id="status"
           name="status"
           defaultValue={defaultStatus}
-          className="w-full rounded-xl border border-stone-edge/40 bg-white px-4 py-3 text-midnight-ink outline-none transition focus:border-invoice-blue"
+          className="flex h-9 w-full rounded-md border border-[#e4e4e7] bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0098f2]"
         >
-          {["NEW", "CONTACTED", "WON", "LOST", "ARCHIVED"].map((status) => (
-            <option key={status} value={status}>
-              {status}
-            </option>
+          {["NEW", "CONTACTED", "WON", "LOST", "ARCHIVED"].map((s) => (
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
-      </label>
-      {state.error ? (
-        <p className="rounded-xl bg-wash-petal px-4 py-3 text-sm text-midnight-ink">{state.error}</p>
-      ) : null}
-      {state.message ? (
-        <p className="rounded-xl bg-wash-sky px-4 py-3 text-sm text-midnight-ink">{state.message}</p>
-      ) : null}
-      <button type="submit" className="button-primary" disabled={pending}>
-        {pending ? "Saving..." : "Update status"}
-      </button>
+      </div>
+      {state.message && <p className="text-xs text-green-700">{state.message}</p>}
+      {state.error && <p className="text-xs text-red-700">{state.error}</p>}
+      <Button type="submit" disabled={pending} size="sm">
+        {pending ? "Saving…" : "Update status"}
+      </Button>
     </form>
   );
 }

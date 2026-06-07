@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { ShieldAlert, ArrowRight } from "lucide-react";
 
-import { DashboardNav } from "@/components/dashboard-nav";
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -10,76 +13,81 @@ export default async function SpamPage() {
   const { workspace } = await requireWorkspace();
 
   const submissions = await prisma.submission.findMany({
-    where: {
-      workspaceId: workspace.id,
-      spamBucket: "SPAM",
-    },
+    where: { workspaceId: workspace.id, spamBucket: "SPAM" },
     orderBy: { createdAt: "desc" },
-    include: {
-      website: true,
-      form: true,
-      spamEvents: true,
-    },
+    include: { website: true, form: true, spamEvents: true },
   });
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-10 md:px-8">
-      <section className="rounded-[20px] bg-white p-8 shadow-subtle">
-        <p className="text-sm font-medium text-invoice-blue">Spam inbox</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-midnight-ink">
-          Suspicious traffic stays out of the main flow.
-        </h1>
-        <p className="mt-4 max-w-2xl text-base leading-8 text-charcoal-whisper">
-          Every spam-marked submission stays reviewable here so you can recover real leads without
-          teaching bots what passed.
-        </p>
-        <div className="mt-6">
-          <DashboardNav />
-        </div>
-      </section>
+    <div className="px-8 py-8 max-w-4xl mx-auto space-y-8">
+      <PageHeader
+        label="Spam"
+        title="Spam inbox"
+        description="Suspicious submissions stay here so you can recover real leads without deleting anything."
+      />
 
-      <section className="grid gap-6">
-        {submissions.length ? (
-          submissions.map((submission) => (
-            <article key={submission.id} className="rounded-[20px] bg-white p-6 shadow-subtle">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <Link href={`/dashboard/spam/${submission.id}`} className="text-lg font-semibold text-midnight-ink">
-                    {submission.submitterName ?? "Unknown sender"}
-                  </Link>
-                  <p className="mt-1 text-sm text-graphite-mute">
-                    {submission.form.formName} on {submission.website.websiteName}
-                  </p>
-                </div>
-                <span className="rounded-full bg-wash-petal px-3 py-1 text-sm font-medium text-midnight-ink">
-                  Score {submission.spamScore}
-                </span>
-              </div>
-
-              <p className="mt-5 max-w-3xl text-sm leading-7 text-charcoal-whisper">
-                {submission.messagePreview ?? "Submission stored in spam for review."}
+      {submissions.length === 0 ? (
+        <Card className="border-dashed border-2 border-[#e4e4e7]">
+          <CardContent className="py-14 flex flex-col items-center text-center gap-4">
+            <div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center">
+              <ShieldAlert className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-[#09090b]">No spam yet</p>
+              <p className="text-sm text-[#71717a] mt-1 max-w-xs">
+                When suspicious submissions are detected they land here instead of polluting your inbox.
               </p>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {submission.spamEvents.map((event) => (
-                  <span
-                    key={event.id}
-                    className="rounded-full bg-cool-mist px-3 py-1 text-xs text-midnight-ink"
-                  >
-                    {event.reason} ({event.scoreAdded >= 0 ? "+" : ""}
-                    {event.scoreAdded})
-                  </span>
-                ))}
-              </div>
-            </article>
-          ))
-        ) : (
-          <div className="rounded-[20px] bg-white p-6 shadow-subtle text-charcoal-whisper">
-            No spam found. When suspicious submissions are detected, we’ll keep them here instead of
-            deleting them.
-          </div>
-        )}
-      </section>
-    </main>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{submissions.length} flagged submission{submissions.length !== 1 ? "s" : ""}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-[#f4f4f5]">
+              {submissions.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/dashboard/spam/${sub.id}`}
+                  className="block px-6 py-4 hover:bg-[#fafafa] transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-semibold text-[#09090b]">
+                          {sub.submitterName ?? "Unknown sender"}
+                        </p>
+                        <Badge variant="destructive" className="text-xs">Score {sub.spamScore}</Badge>
+                      </div>
+                      <p className="text-xs text-[#a1a1aa]">
+                        {sub.form.formName} · {sub.website.websiteName}
+                      </p>
+                      {sub.messagePreview && (
+                        <p className="text-xs text-[#71717a] mt-2 line-clamp-2">{sub.messagePreview}</p>
+                      )}
+                      {sub.spamEvents.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {sub.spamEvents.slice(0, 4).map((event) => (
+                            <span
+                              key={event.id}
+                              className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100"
+                            >
+                              {event.reason} ({event.scoreAdded >= 0 ? "+" : ""}{event.scoreAdded})
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-[#a1a1aa] shrink-0 mt-1" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }

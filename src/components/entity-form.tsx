@@ -1,6 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 import type { EntityFormState } from "@/app/actions/forms";
 
@@ -15,19 +21,28 @@ type Field =
       label: string;
       type?: "text" | "email" | "url";
       placeholder?: string;
+      hint?: string;
       kind?: "input";
+      required?: boolean;
+      optional?: boolean;
     }
   | {
       name: string;
       label: string;
       placeholder?: string;
+      hint?: string;
       kind: "textarea";
+      required?: boolean;
+      optional?: boolean;
     }
   | {
       name: string;
       label: string;
       options: Option[];
+      hint?: string;
       kind: "select";
+      required?: boolean;
+      optional?: boolean;
     };
 
 type EntityFormProps = {
@@ -43,64 +58,79 @@ export function EntityForm({ action, submitLabel, fields }: EntityFormProps) {
 
   return (
     <form action={formAction} className="space-y-5">
-      {fields.map((field) => {
-        if (field.kind === "textarea") {
-          return (
-            <label key={field.name} className="block space-y-2">
-              <span className="text-sm font-medium text-midnight-ink">{field.label}</span>
-              <textarea
-                name={field.name}
-                rows={4}
-                placeholder={field.placeholder}
-                className="w-full rounded-xl border border-stone-edge/40 bg-white px-4 py-3 text-midnight-ink outline-none transition focus:border-invoice-blue"
-              />
-            </label>
-          );
-        }
+      {fields.map((field) => (
+        <div key={field.name} className="space-y-1.5">
+          <Label htmlFor={field.name} className="flex items-center gap-1.5">
+            {field.label}
+            {(field as { optional?: boolean }).optional && (
+              <span className="text-xs font-normal text-[#a1a1aa]">(optional)</span>
+            )}
+          </Label>
 
-        if (field.kind === "select") {
-          return (
-            <label key={field.name} className="block space-y-2">
-              <span className="text-sm font-medium text-midnight-ink">{field.label}</span>
-              <select
-                name={field.name}
-                className="w-full rounded-xl border border-stone-edge/40 bg-white px-4 py-3 text-midnight-ink outline-none transition focus:border-invoice-blue"
-                defaultValue={field.options[0]?.value}
-              >
-                {field.options.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          );
-        }
-
-        return (
-          <label key={field.name} className="block space-y-2">
-            <span className="text-sm font-medium text-midnight-ink">{field.label}</span>
-            <input
+          {field.kind === "textarea" && (
+            <Textarea
+              id={field.name}
               name={field.name}
-              type={field.type ?? "text"}
+              rows={4}
               placeholder={field.placeholder}
-              className="w-full rounded-xl border border-stone-edge/40 bg-white px-4 py-3 text-midnight-ink outline-none transition focus:border-invoice-blue"
-              required={field.name !== "allowedDomains" && field.name !== "defaultSuccessRedirect"}
             />
-          </label>
-        );
-      })}
+          )}
 
-      {state.error ? (
-        <p className="rounded-xl bg-wash-petal px-4 py-3 text-sm text-midnight-ink">{state.error}</p>
-      ) : null}
-      {state.message ? (
-        <p className="rounded-xl bg-wash-sky px-4 py-3 text-sm text-midnight-ink">{state.message}</p>
-      ) : null}
+          {field.kind === "select" && (
+            <select
+              id={field.name}
+              name={field.name}
+              className="flex h-9 w-full rounded-md border border-[#e4e4e7] bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0098f2]"
+              defaultValue={field.options[0]?.value}
+            >
+              {field.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          )}
 
-      <button type="submit" className="button-primary justify-center" disabled={pending}>
-        {pending ? "Saving..." : submitLabel}
-      </button>
+          {(!field.kind || field.kind === "input") && (
+            <Input
+              id={field.name}
+              name={field.name}
+              type={(field as { type?: string }).type ?? "text"}
+              placeholder={(field as { placeholder?: string }).placeholder}
+              required={
+                !(field as { optional?: boolean }).optional &&
+                (field as { required?: boolean }).required !== false &&
+                field.name !== "allowedDomains" &&
+                field.name !== "defaultSuccessRedirect" &&
+                field.name !== "successRedirectUrl" &&
+                field.name !== "timezone"
+              }
+            />
+          )}
+
+          {(field as { hint?: string }).hint && (
+            <p className="text-xs text-[#a1a1aa]">{(field as { hint?: string }).hint}</p>
+          )}
+        </div>
+      ))}
+
+      {state.error && (
+        <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-red-700">{state.error}</p>
+        </div>
+      )}
+
+      {state.message && (
+        <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+          <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-green-700">{state.message}</p>
+        </div>
+      )}
+
+      <Button type="submit" disabled={pending} className="w-full sm:w-auto">
+        {pending ? "Saving…" : submitLabel}
+      </Button>
     </form>
   );
 }

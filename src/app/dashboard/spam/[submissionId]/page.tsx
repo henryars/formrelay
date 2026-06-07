@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft } from "lucide-react";
 
-import { DashboardNav } from "@/components/dashboard-nav";
 import { SubmissionSpamReviewForm } from "@/components/submission-spam-review-form";
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -17,96 +20,77 @@ export default async function SpamDetailPage({
   const { submissionId } = await params;
 
   const submission = await prisma.submission.findFirst({
-    where: {
-      id: submissionId,
-      workspaceId: workspace.id,
-      spamBucket: "SPAM",
-    },
-    include: {
-      website: true,
-      form: true,
-      spamEvents: true,
-    },
+    where: { id: submissionId, workspaceId: workspace.id, spamBucket: "SPAM" },
+    include: { website: true, form: true, spamEvents: true },
   });
 
-  if (!submission) {
-    notFound();
-  }
+  if (!submission) notFound();
 
   const spamReasons = Array.isArray(submission.spamReasons)
-    ? (submission.spamReasons as Array<{
-        code?: string;
-        label?: string;
-        score?: number;
-        severity?: string;
-      }>)
+    ? (submission.spamReasons as Array<{ code?: string; label?: string; score?: number; severity?: string }>)
     : [];
+
   const renderedReasons = spamReasons.length
-    ? spamReasons.map((reason, index) => ({
-        key: `${reason.code ?? "reason"}-${index}`,
-        label: reason.label ?? "Spam rule triggered",
-        score: reason.score ?? 0,
-        severity: reason.severity ?? null,
+    ? spamReasons.map((r, i) => ({
+        key: `${r.code ?? "reason"}-${i}`,
+        label: r.label ?? "Spam rule triggered",
+        score: r.score ?? 0,
+        severity: r.severity ?? null,
       }))
-    : submission.spamEvents.map((event) => ({
-        key: event.id,
-        label: event.reason,
-        score: event.scoreAdded,
+    : submission.spamEvents.map((e) => ({
+        key: e.id,
+        label: e.reason,
+        score: e.scoreAdded,
         severity: null,
       }));
 
   return (
-    <main className="mx-auto flex w-full max-w-[1200px] flex-col gap-8 px-6 py-10 md:px-8">
-      <section className="rounded-[20px] bg-white p-8 shadow-subtle">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-medium text-invoice-blue">Spam detail</p>
-            <h1 className="mt-2 text-4xl font-semibold tracking-[-0.04em] text-midnight-ink">
-              Score {submission.spamScore}
-            </h1>
-            <p className="mt-3 text-base leading-8 text-charcoal-whisper">
-              {submission.form.formName} on {submission.website.websiteName}
-            </p>
-          </div>
-          <Link href="/dashboard/spam" className="button-secondary">
-            Back to spam
-          </Link>
-        </div>
-        <div className="mt-6">
-          <DashboardNav />
-        </div>
-      </section>
+    <div className="px-8 py-8 max-w-3xl mx-auto space-y-6">
+      <div>
+        <Link
+          href="/dashboard/spam"
+          className="inline-flex items-center gap-1 text-sm text-[#71717a] hover:text-[#09090b] transition-colors mb-4"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back to spam
+        </Link>
+        <PageHeader
+          label="Spam detail"
+          title={submission.submitterName ?? "Unknown sender"}
+          description={`${submission.form.formName} · ${submission.website.websiteName}`}
+        >
+          <Badge variant="destructive">Score {submission.spamScore}</Badge>
+        </PageHeader>
+      </div>
 
-      <section className="rounded-[20px] bg-white p-6 shadow-subtle">
-        <h2 className="text-2xl font-semibold tracking-tight text-midnight-ink">
-          Why it was marked as spam
-        </h2>
-        <div className="mt-6 space-y-3">
-          {renderedReasons.map((event) => (
-            <div
-              key={event.key}
-              className="rounded-[20px] bg-wash-petal px-4 py-4 text-sm text-midnight-ink"
-            >
-              <p className="font-medium">{event.label}</p>
-              <p className="mt-1 text-graphite-mute">
-                Score {event.score}
-                {event.severity ? ` • ${event.severity}` : ""}
-              </p>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Why it was flagged</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {renderedReasons.map((r) => (
+            <div key={r.key} className="flex items-center justify-between text-sm py-1.5 border-b border-[#f4f4f5] last:border-0">
+              <span className="text-[#52525b]">{r.label}</span>
+              <span className="text-xs text-[#a1a1aa]">+{r.score}{r.severity ? ` · ${r.severity}` : ""}</span>
             </div>
           ))}
-        </div>
-      </section>
+          {renderedReasons.length === 0 && (
+            <p className="text-sm text-[#a1a1aa]">No specific signals captured.</p>
+          )}
+        </CardContent>
+      </Card>
 
-      <section className="rounded-[20px] bg-white p-6 shadow-subtle">
-        <h2 className="text-2xl font-semibold tracking-tight text-midnight-ink">Recover lead</h2>
-        <p className="mt-3 text-sm leading-7 text-charcoal-whisper">
-          Move this submission back into the inbox if it looks real. You can also send the
-          notification again so the team sees it.
-        </p>
-        <div className="mt-5">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Recover this lead</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-[#71717a] mb-4">
+            If this looks like a real submission, move it back to the inbox. You can also resend the email notification.
+          </p>
           <SubmissionSpamReviewForm submissionId={submission.id} mode="recover" />
-        </div>
-      </section>
-    </main>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
