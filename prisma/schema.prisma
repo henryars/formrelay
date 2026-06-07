@@ -55,6 +55,20 @@ enum EmailStatus {
   SKIPPED
 }
 
+enum EmailSuppressionReason {
+  BOUNCE
+  COMPLAINT
+  MANUAL
+}
+
+enum EmailDeliveryEventType {
+  DELIVERY
+  BOUNCE
+  COMPLAINT
+  SUBSCRIPTION_CONFIRMATION
+  UNKNOWN
+}
+
 enum SpamBucket {
   INBOX
   SUSPICIOUS
@@ -106,20 +120,20 @@ model User {
 }
 
 model Workspace {
-  id            String         @id @default(cuid())
+  id            String        @id @default(cuid())
   ownerUserId   String
   workspaceName String
-  plan          UserPlan       @default(FREE)
-  billingStatus BillingStatus  @default(TRIALING)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  owner         User           @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  plan          UserPlan      @default(FREE)
+  billingStatus BillingStatus @default(TRIALING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  owner         User          @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   websites      Website[]
   submissions   Submission[]
 }
 
 model Website {
-  id                     String      @id @default(cuid())
+  id                     String         @id @default(cuid())
   workspaceId            String
   websiteName            String
   websiteUrl             String
@@ -127,10 +141,10 @@ model Website {
   allowedDomains         String[]
   defaultSuccessRedirect String?
   timezone               String?
-  status                 WebsiteStatus @default(ACTIVE)
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
-  workspace              Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status                 WebsiteStatus  @default(ACTIVE)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  workspace              Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   forms                  FormInbox[]
   submissions            Submission[]
   blockedEvents          BlockedEvent[]
@@ -139,29 +153,29 @@ model Website {
 }
 
 model FormInbox {
-  id                    String       @id @default(cuid())
+  id                    String                @id @default(cuid())
   websiteId             String
   formName              String
-  publicFormId          String       @unique
+  publicFormId          String                @unique
   endpointUrl           String?
   recipientEmails       String[]
   successRedirectUrl    String?
-  spamProtectionLevel   String       @default("STANDARD")
+  spamProtectionLevel   String                @default("STANDARD")
   websiteProtectionMode WebsiteProtectionMode @default(STANDARD)
-  formType              FormType     @default(CONTACT)
+  formType              FormType              @default(CONTACT)
   honeypotFieldName     String?
   nameFieldKey          String?
   emailFieldKey         String?
   phoneFieldKey         String?
   messageFieldKey       String?
-  status                FormStatus   @default(ACTIVE)
-  notifyOnLowSuspicious Boolean      @default(true)
-  notifyOnSuspicious    Boolean      @default(false)
-  notifyOnSpam          Boolean      @default(false)
-  weeklySpamSummary     Boolean      @default(false)
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
-  website               Website      @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  status                FormStatus            @default(ACTIVE)
+  notifyOnLowSuspicious Boolean               @default(true)
+  notifyOnSuspicious    Boolean               @default(false)
+  notifyOnSpam          Boolean               @default(false)
+  weeklySpamSummary     Boolean               @default(false)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  website               Website               @relation(fields: [websiteId], references: [id], onDelete: Cascade)
   submissions           Submission[]
   blockedEvents         BlockedEvent[]
   feedbackEvents        SpamFeedback[]
@@ -170,43 +184,43 @@ model FormInbox {
 }
 
 model Submission {
-  id               String           @id @default(cuid())
-  workspaceId      String
-  websiteId        String
-  formId           String
-  status           SubmissionStatus @default(NEW)
-  spamStatus       SpamStatus       @default(CLEAN)
-  spamScore        Int              @default(0)
-  spamBucket       SpamBucket       @default(INBOX)
-  spamReasons      Json?
-  spamCheckedAt    DateTime?
-  notificationStatus NotificationStatus @default(NOT_APPLICABLE)
+  id                           String             @id @default(cuid())
+  workspaceId                  String
+  websiteId                    String
+  formId                       String
+  status                       SubmissionStatus   @default(NEW)
+  spamStatus                   SpamStatus         @default(CLEAN)
+  spamScore                    Int                @default(0)
+  spamBucket                   SpamBucket         @default(INBOX)
+  spamReasons                  Json?
+  spamCheckedAt                DateTime?
+  notificationStatus           NotificationStatus @default(NOT_APPLICABLE)
   notificationSuppressedReason String?
-  submitterName    String?
-  submitterEmail   String?
-  submitterPhone   String?
-  messagePreview   String?
-  rawFields        Json
-  fieldItems       Json
-  sourceUrl        String?
-  pageTitle        String?
-  originHeader     String?
-  refererHeader    String?
-  referrer         String?
-  ipHash           String?
-  userAgent        String?
-  requestFingerprint String?
-  submissionFingerprint String?
-  payloadHash      String?
-  metadata         Json?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  workspace        Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  website          Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  form             FormInbox        @relation(fields: [formId], references: [id], onDelete: Cascade)
-  emailLogs        EmailLog[]
-  spamEvents       SpamEvent[]
-  feedbackEvents   SpamFeedback[]
+  submitterName                String?
+  submitterEmail               String?
+  submitterPhone               String?
+  messagePreview               String?
+  rawFields                    Json
+  fieldItems                   Json
+  sourceUrl                    String?
+  pageTitle                    String?
+  originHeader                 String?
+  refererHeader                String?
+  referrer                     String?
+  ipHash                       String?
+  userAgent                    String?
+  requestFingerprint           String?
+  submissionFingerprint        String?
+  payloadHash                  String?
+  metadata                     Json?
+  createdAt                    DateTime           @default(now())
+  updatedAt                    DateTime           @updatedAt
+  workspace                    Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  website                      Website            @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  form                         FormInbox          @relation(fields: [formId], references: [id], onDelete: Cascade)
+  emailLogs                    EmailLog[]
+  spamEvents                   SpamEvent[]
+  feedbackEvents               SpamFeedback[]
 
   @@index([workspaceId, createdAt])
   @@index([websiteId, createdAt])
@@ -216,18 +230,21 @@ model Submission {
 }
 
 model EmailLog {
-  id             String      @id @default(cuid())
+  id             String               @id @default(cuid())
   submissionId   String
   recipientEmail String
   emailSubject   String
-  emailStatus    EmailStatus @default(PENDING)
+  emailStatus    EmailStatus          @default(PENDING)
   sesMessageId   String?
   errorMessage   String?
   sentAt         DateTime?
-  createdAt      DateTime    @default(now())
-  submission     Submission  @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime             @default(now())
+  submission     Submission           @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  deliveryEvents EmailDeliveryEvent[]
 
   @@index([submissionId])
+  @@index([recipientEmail, createdAt])
+  @@index([sesMessageId])
 }
 
 model SpamEvent {
@@ -242,7 +259,7 @@ model SpamEvent {
 }
 
 model BlockedEvent {
-  id            String   @id @default(cuid())
+  id            String     @id @default(cuid())
   workspaceId   String?
   websiteId     String?
   formId        String?
@@ -255,8 +272,8 @@ model BlockedEvent {
   payloadSize   Int?
   fieldCount    Int?
   contentType   String?
-  createdAt     DateTime @default(now())
-  website       Website? @relation(fields: [websiteId], references: [id], onDelete: SetNull)
+  createdAt     DateTime   @default(now())
+  website       Website?   @relation(fields: [websiteId], references: [id], onDelete: SetNull)
   form          FormInbox? @relation(fields: [formId], references: [id], onDelete: SetNull)
 
   @@index([workspaceId, createdAt])
@@ -277,4 +294,46 @@ model SpamFeedback {
 
   @@index([submissionId])
   @@index([formId, createdAt])
+}
+
+model EmailSuppression {
+  id             String                 @id @default(cuid())
+  workspaceId    String?
+  recipientEmail String                 @unique
+  reason         EmailSuppressionReason
+  source         String
+  detail         String?
+  sesMessageId   String?
+  topicArn       String?
+  rawPayload     Json?
+  lastEventAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([reason, updatedAt])
+  @@index([workspaceId, updatedAt])
+}
+
+model EmailDeliveryEvent {
+  id             String                 @id @default(cuid())
+  eventKey       String                 @unique
+  workspaceId    String?
+  emailLogId     String?
+  recipientEmail String
+  eventType      EmailDeliveryEventType
+  sesMessageId   String?
+  sesEventId     String?
+  topicArn       String?
+  detail         String?
+  rawPayload     Json
+  mailTimestamp  DateTime?
+  eventTimestamp DateTime?
+  createdAt      DateTime               @default(now())
+  emailLog       EmailLog?              @relation(fields: [emailLogId], references: [id], onDelete: SetNull)
+
+  @@index([emailLogId])
+  @@index([recipientEmail, createdAt])
+  @@index([sesMessageId])
+  @@index([eventType, createdAt])
+  @@index([workspaceId, createdAt])
 }

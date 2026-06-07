@@ -1,9 +1,10 @@
 "use server";
 
-import type { NotificationStatus } from "@prisma/client";
+import type { NotificationStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 
 import { requireWorkspace } from "@/lib/auth";
+import { buildEmailLogEntriesForSendResult } from "@/lib/email-delivery";
 import { renderSubmissionEmail, sendSubmissionEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { parseFieldItems } from "@/lib/submission-json";
@@ -131,16 +132,7 @@ export async function reviewSubmissionSpamAction(
 
   let notificationStatus: NotificationStatus = "NOT_APPLICABLE";
   let notificationSuppressedReason: string | null = null;
-  let emailLogData:
-    | {
-        recipientEmail: string;
-        emailSubject: string;
-        emailStatus: "SENT" | "FAILED" | "SKIPPED";
-        sesMessageId?: string;
-        errorMessage?: string;
-        sentAt?: Date;
-      }
-    | undefined;
+  let emailLogData: Prisma.EmailLogCreateManyInput[] = [];
 
   if (parsed.data.sendNotificationNow === "true") {
     const subject = `Recovered submission from ${submission.form.formName} — ${submission.website.websiteName}`;
@@ -161,31 +153,25 @@ export async function reviewSubmissionSpamAction(
         }),
       });
 
-      emailLogData = emailResponse.skipped
-        ? {
-            recipientEmail: submission.form.recipientEmails.join(", "),
-            emailSubject: subject,
-            emailStatus: "SKIPPED",
-          }
-        : {
-            recipientEmail: submission.form.recipientEmails.join(", "),
-            emailSubject: subject,
-            emailStatus: "SENT",
-            sesMessageId: emailResponse.messageId,
-            sentAt: new Date(),
-          };
+      emailLogData = buildEmailLogEntriesForSendResult({
+        submissionId: submission.id,
+        intendedRecipients: submission.form.recipientEmails,
+        subject,
+        sendResult: emailResponse,
+      });
 
       notificationStatus = emailResponse.skipped ? "NOT_APPLICABLE" : "SENT";
-      notificationSuppressedReason = emailResponse.skipped
-        ? "Email delivery is not configured in this environment."
-        : null;
+      notificationSuppressedReason =
+        emailResponse.suppressionReason ??
+        (emailResponse.skipped ? emailResponse.skippedReason ?? null : null);
     } catch (error) {
-      emailLogData = {
-        recipientEmail: submission.form.recipientEmails.join(", "),
+      emailLogData = submission.form.recipientEmails.map((recipientEmail) => ({
+        submissionId: submission.id,
+        recipientEmail: recipientEmail.toLowerCase(),
         emailSubject: subject,
-        emailStatus: "FAILED",
+        emailStatus: "FAILED" as const,
         errorMessage: error instanceof Error ? error.message : "Unknown email error",
-      };
+      }));
       notificationStatus = "FAILED";
       notificationSuppressedReason =
         error instanceof Error ? error.message : "Recovered notification failed.";
@@ -203,12 +189,9 @@ export async function reviewSubmissionSpamAction(
     },
   });
 
-  if (emailLogData) {
-    await prisma.emailLog.create({
-      data: {
-        submissionId: submission.id,
-        ...emailLogData,
-      },
+  if (emailLogData.length) {
+    await prisma.emailLog.createMany({
+      data: emailLogData,
     });
   }
 

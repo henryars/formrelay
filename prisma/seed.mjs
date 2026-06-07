@@ -18,6 +18,8 @@ async function main() {
   const email = "demo@formrelay.local";
   const passwordHash = hashPassword("demo12345");
 
+  await prisma.emailDeliveryEvent.deleteMany();
+  await prisma.emailSuppression.deleteMany();
   await prisma.emailLog.deleteMany();
   await prisma.spamFeedback.deleteMany();
   await prisma.spamEvent.deleteMany();
@@ -235,13 +237,21 @@ async function main() {
     },
   });
 
-  await prisma.emailLog.create({
-    data: {
-      submissionId: spamSubmission.id,
-      recipientEmail: "sales@laundrygrowth.co, ops@laundrygrowth.co",
-      emailSubject: "Spam submission blocked — Quote Request Form",
-      emailStatus: "SKIPPED",
-    },
+  await prisma.emailLog.createMany({
+    data: [
+      {
+        submissionId: spamSubmission.id,
+        recipientEmail: "sales@laundrygrowth.co",
+        emailSubject: "Spam submission blocked — Quote Request Form",
+        emailStatus: "SKIPPED",
+      },
+      {
+        submissionId: spamSubmission.id,
+        recipientEmail: "ops@laundrygrowth.co",
+        emailSubject: "Spam submission blocked — Quote Request Form",
+        emailStatus: "SKIPPED",
+      },
+    ],
   });
 
   console.log("Seed complete.");

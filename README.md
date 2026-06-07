@@ -62,6 +62,18 @@ Run the local stack smoke test after the app is running:
 npm run smoke:e2e
 ```
 
+## Production email and SES webhooks
+
+The app now supports:
+
+- submission notifications through AWS SES
+- password reset emails through AWS SES
+- SES SNS webhook ingestion at `/api/webhooks/ses`
+- automatic recipient suppression after SES bounce and complaint events
+- dashboard visibility for SES suppressions and recent delivery events
+
+Copy [.env.example](/Users/ibk/formrelay/.env.example) to `.env` locally and see the AWS deployment checklist in [docs/aws-production-runbook.md](/Users/ibk/formrelay/docs/aws-production-runbook.md).
+
 ## Key routes
 
 - `/` marketing site
@@ -91,8 +103,7 @@ docker exec formrelay-postgres-1 psql -U formrelay -d formrelay -f /tmp/manual-s
 
 ## Remaining Product Work
 
-- Connect real SES delivery and password-reset emails
 - Wire real billing and usage enforcement
 - Add edit/pause/delete flows for websites and forms
 - Add stronger filtering, bulk actions, and archive/delete UX in submissions
-- Add file uploads, webhooks, and deeper workflow automations in later phases
+- Add file uploads and deeper workflow automations in later phases

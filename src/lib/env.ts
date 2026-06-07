@@ -12,8 +12,15 @@ const envSchema = z.object({
     .string()
     .default("FormRelay <forms@example.com>")
     .refine((value) => /.+@.+/.test(value), "AWS_SES_FROM_EMAIL must contain an email address"),
+  AWS_SES_RESET_FROM_EMAIL: z
+    .string()
+    .optional()
+    .refine((value) => !value || /.+@.+/.test(value), "AWS_SES_RESET_FROM_EMAIL must contain an email address"),
+  AWS_SES_CONFIGURATION_SET: z.string().optional(),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_SES_WEBHOOK_TOPIC_ARNS: z.string().optional(),
+  AWS_SES_WEBHOOK_AUTO_CONFIRM: z.enum(["true", "false"]).default("true"),
   SESSION_SECRET: z.string().min(16).default("dev-session-secret-change-me"),
 });
 
@@ -23,7 +30,11 @@ export const env = envSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   AWS_REGION: process.env.AWS_REGION,
   AWS_SES_FROM_EMAIL: process.env.AWS_SES_FROM_EMAIL,
+  AWS_SES_RESET_FROM_EMAIL: process.env.AWS_SES_RESET_FROM_EMAIL,
+  AWS_SES_CONFIGURATION_SET: process.env.AWS_SES_CONFIGURATION_SET,
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  AWS_SES_WEBHOOK_TOPIC_ARNS: process.env.AWS_SES_WEBHOOK_TOPIC_ARNS,
+  AWS_SES_WEBHOOK_AUTO_CONFIRM: process.env.AWS_SES_WEBHOOK_AUTO_CONFIRM,
   SESSION_SECRET: process.env.SESSION_SECRET,
 });

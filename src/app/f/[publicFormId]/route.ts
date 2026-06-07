@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import type { FormInbox, Prisma, Website, Workspace } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import {
+  buildEmailLogEntriesForSendResult,
+  buildSuppressedEmailLogEntries,
+} from "@/lib/email-delivery";
 import { renderSubmissionEmail, sendSubmissionEmail } from "@/lib/email";
 import {
   countTruthyFields,
@@ -471,27 +475,18 @@ export async function POST(
       },
     });
 
-    let emailLogData:
-      | {
-          recipientEmail: string;
-          emailSubject: string;
-          emailStatus: "SENT" | "FAILED" | "SKIPPED";
-          sesMessageId?: string;
-          errorMessage?: string;
-          sentAt?: Date;
-        }
-      | undefined;
+    const subjectPrefix =
+      spamResult.spamStatus === "SUSPICIOUS"
+        ? "[Suspicious] "
+        : spamResult.spamStatus === "SPAM"
+          ? "[Spam review] "
+          : "";
+    const subject = `${subjectPrefix}New submission from ${form.formName} — ${form.website.websiteName}`;
+    let emailLogData: Prisma.EmailLogCreateManyInput[] = [];
     let finalNotificationStatus = notificationDecision.notificationStatus;
     let finalSuppressedReason = notificationDecision.suppressedReason;
 
     if (notificationDecision.shouldNotify) {
-      const subjectPrefix =
-        spamResult.spamStatus === "SUSPICIOUS"
-          ? "[Suspicious] "
-          : spamResult.spamStatus === "SPAM"
-            ? "[Spam review] "
-            : "";
-      const subject = `${subjectPrefix}New submission from ${form.formName} — ${form.website.websiteName}`;
       try {
         const emailResponse = await sendSubmissionEmail({
           to: form.recipientEmails,
@@ -505,48 +500,40 @@ export async function POST(
           }),
         });
 
-        emailLogData = emailResponse.skipped
-          ? {
-              recipientEmail: form.recipientEmails.join(", "),
-              emailSubject: subject,
-              emailStatus: "SKIPPED",
-            }
-          : {
-              recipientEmail: form.recipientEmails.join(", "),
-              emailSubject: subject,
-              emailStatus: "SENT",
-              sesMessageId: emailResponse.messageId,
-              sentAt: new Date(),
-            };
+        emailLogData = buildEmailLogEntriesForSendResult({
+          submissionId: submission.id,
+          intendedRecipients: form.recipientEmails,
+          subject,
+          sendResult: emailResponse,
+        });
         finalNotificationStatus = emailResponse.skipped ? "NOT_APPLICABLE" : "SENT";
-        finalSuppressedReason = emailResponse.skipped
-          ? "Email delivery is not configured in this environment."
-          : undefined;
+        finalSuppressedReason =
+          emailResponse.suppressionReason ??
+          (emailResponse.skipped ? emailResponse.skippedReason : undefined);
       } catch (error) {
-        emailLogData = {
-          recipientEmail: form.recipientEmails.join(", "),
+        emailLogData = form.recipientEmails.map((recipientEmail) => ({
+          submissionId: submission.id,
+          recipientEmail: recipientEmail.toLowerCase(),
           emailSubject: subject,
-          emailStatus: "FAILED",
+          emailStatus: "FAILED" as const,
           errorMessage: error instanceof Error ? error.message : "Unknown email error",
-        };
+        }));
         finalNotificationStatus = "FAILED";
         finalSuppressedReason =
           error instanceof Error ? error.message : "Notification delivery failed.";
       }
     } else {
-      emailLogData = {
-        recipientEmail: form.recipientEmails.join(", "),
-        emailSubject: `Submission notification suppressed — ${form.formName}`,
-        emailStatus: "SKIPPED",
-      };
+      emailLogData = buildSuppressedEmailLogEntries({
+        submissionId: submission.id,
+        recipients: form.recipientEmails,
+        subject,
+        reason: notificationDecision.suppressedReason ?? "Submission notification was suppressed.",
+      });
     }
 
-    if (emailLogData) {
-      await prisma.emailLog.create({
-        data: {
-          submissionId: submission.id,
-          ...emailLogData,
-        },
+    if (emailLogData.length) {
+      await prisma.emailLog.createMany({
+        data: emailLogData,
       });
     }
 

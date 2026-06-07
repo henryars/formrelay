@@ -11,6 +11,8 @@ import {
   requireWorkspace,
   verifyPassword,
 } from "@/lib/auth";
+import { sendPasswordResetEmail } from "@/lib/email";
+import { env } from "@/lib/env";
 import { prisma } from "@/lib/prisma";
 
 const signUpSchema = z.object({
@@ -151,6 +153,9 @@ export async function requestPasswordResetAction(
 
   if (user) {
     const token = createPasswordResetToken();
+    const resetUrl = new URL("/reset-password", env.NEXT_PUBLIC_APP_URL);
+    resetUrl.searchParams.set("token", token.plainToken);
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -159,14 +164,27 @@ export async function requestPasswordResetAction(
       },
     });
 
-    console.info(
-      `Password reset for ${email}: ${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/reset-password?token=${token.plainToken}`,
-    );
+    try {
+      const emailResult = await sendPasswordResetEmail({
+        to: user.email,
+        resetUrl: resetUrl.toString(),
+        fullName: user.fullName,
+      });
+
+      if (emailResult.skipped) {
+        console.info(`Password reset email skipped for ${email}: ${resetUrl.toString()}`);
+      }
+    } catch (error) {
+      console.error("Password reset email failed to send", {
+        email,
+        message: error instanceof Error ? error.message : "Unknown email error",
+      });
+      console.info(`Password reset for ${email}: ${resetUrl.toString()}`);
+    }
   }
 
   return {
-    message:
-      "If that email exists, a reset link has been generated. In local development, check the server logs for the reset URL.",
+    message: "If that email exists, a reset link has been sent.",
   };
 }
 
