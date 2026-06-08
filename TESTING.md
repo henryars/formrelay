@@ -288,7 +288,7 @@ curl -X POST http://localhost:3000/f/fm_XXXX \
   -F "message=I am a bot"
 ```
 
-**Expected:** Submission appears with a high spam score and SPAM classification.
+**Expected:** Submission appears with a high spam score and SUSPICIOUS classification.
 
 ---
 
@@ -323,7 +323,7 @@ curl -X POST http://localhost:3000/f/fm_XXXX \
 
 | What to check | Expected |
 |--------------|----------|
-| Lists submissions classified as SPAM or SUSPICIOUS | ✓ |
+| Lists submissions classified as SPAM | ✓ |
 | Each entry shows spam signal tags (reason chips) | ✓ |
 | Clicking an entry | Goes to spam detail page |
 
@@ -425,7 +425,7 @@ Test these screen sizes. You can use browser DevTools (F12 → toggle device too
 | What to send | Expected |
 |-------------|----------|
 | POST to a non-existent form ID `/f/fm_doesnotexist` | `{"success": false, "message": "This form endpoint is not active."}` with HTTP 404 |
-| POST with an extremely long field value (> 5000 chars) | HTTP 422 with `success: false` — blocked |
+| POST with an extremely long field value (> 10000 chars) | HTTP 422 with `success: false` — blocked |
 | POST with more than 50 fields | HTTP 422 — too many fields |
 | POST with a file upload (multipart with actual file) | HTTP 422 — files not allowed |
 | POST the same data twice within 2 minutes from same IP | Second submission gets a high spam score (duplicate detection) |

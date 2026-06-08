@@ -4,22 +4,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { env } from "@/lib/env";
+import { SESSION_COOKIE, parseSessionToken, type SessionPayload } from "@/lib/auth-edge";
 import { prisma } from "@/lib/prisma";
 
-export const SESSION_COOKIE = "formrelay_session";
-
-type SessionPayload = {
-  userId: string;
-  email: string;
-  issuedAt: number;
-};
+export { SESSION_COOKIE, parseSessionToken } from "@/lib/auth-edge";
 
 function base64UrlEncode(input: string) {
   return Buffer.from(input).toString("base64url");
-}
-
-function base64UrlDecode(input: string) {
-  return Buffer.from(input, "base64url").toString("utf8");
 }
 
 function signPayload(payload: string) {
@@ -30,33 +21,6 @@ export function serializeSession(session: SessionPayload) {
   const payload = base64UrlEncode(JSON.stringify(session));
   const signature = signPayload(payload);
   return `${payload}.${signature}`;
-}
-
-export function parseSessionToken(value: string | undefined): SessionPayload | null {
-  if (!value) {
-    return null;
-  }
-
-  const [payload, signature] = value.split(".");
-
-  if (!payload || !signature) {
-    return null;
-  }
-
-  const expectedSignature = signPayload(payload);
-
-  if (
-    expectedSignature.length !== signature.length ||
-    !timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature))
-  ) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(base64UrlDecode(payload)) as SessionPayload;
-  } catch {
-    return null;
-  }
 }
 
 export function hashPassword(password: string) {
@@ -104,7 +68,7 @@ export async function getSession() {
   const cookieStore = await cookies();
   const rawValue = cookieStore.get(SESSION_COOKIE)?.value;
 
-  return parseSessionToken(rawValue);
+  return parseSessionToken(rawValue, env.SESSION_SECRET);
 }
 
 export async function getCurrentUser() {

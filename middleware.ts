@@ -1,14 +1,15 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { parseSessionToken } from "@/lib/auth";
+import { parseSessionToken } from "@/lib/auth-edge";
 
 const protectedPrefixes = ["/dashboard"];
 const authPages = ["/login", "/signup"];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = parseSessionToken(request.cookies.get("formrelay_session")?.value);
+  const secret = process.env.SESSION_SECRET ?? "dev-session-secret-change-me";
+  const session = await parseSessionToken(request.cookies.get("formrelay_session")?.value, secret);
 
   if (protectedPrefixes.some((prefix) => pathname.startsWith(prefix)) && !session) {
     const loginUrl = new URL("/login", request.url);
