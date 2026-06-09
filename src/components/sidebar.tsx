@@ -1,190 +1,179 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   Globe,
   FileText,
   Inbox,
   ShieldAlert,
-  Lock,
   Settings,
-  CreditCard,
   Zap,
-  ChevronRight,
-  Rocket,
-  Menu,
-  X,
+  LogOut,
+  LayoutDashboard,
 } from "lucide-react";
+import { logoutAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
-import { SidebarLogout } from "./sidebar-logout";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/dashboard/websites", label: "Websites", icon: Globe },
-  { href: "/dashboard/forms", label: "Forms", icon: FileText },
-  { href: "/dashboard/submissions", label: "Submissions", icon: Inbox },
-  { href: "/dashboard/spam", label: "Spam", icon: ShieldAlert },
-  { href: "/dashboard/security", label: "Security", icon: Lock },
+  { href: "/dashboard",             icon: LayoutDashboard, label: "Overview"  },
+  { href: "/dashboard/websites",    icon: Globe,           label: "Websites"  },
+  { href: "/dashboard/forms",       icon: FileText,        label: "Forms"     },
+  { href: "/dashboard/submissions", icon: Inbox,           label: "Inbox"     },
+  { href: "/dashboard/spam",        icon: ShieldAlert,     label: "Spam"      },
 ];
 
-const bottomItems = [
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+const bottomNavItems = [
+  { href: "/dashboard",             icon: LayoutDashboard, label: "Home"  },
+  { href: "/dashboard/forms",       icon: FileText,        label: "Forms" },
+  { href: "/dashboard/submissions", icon: Inbox,           label: "Inbox" },
+  { href: "/dashboard/spam",        icon: ShieldAlert,     label: "Spam"  },
 ];
 
-type SidebarProps = {
+interface SidebarProps {
   workspaceName: string;
   userEmail: string;
   onboardingComplete: boolean;
-};
+  setupProgress?: number;
+}
 
-export function Sidebar({ workspaceName, userEmail, onboardingComplete }: SidebarProps) {
+export function Sidebar({
+  workspaceName,
+  userEmail,
+  onboardingComplete,
+  setupProgress = 0,
+}: SidebarProps) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
-  function isActive(href: string, exact?: boolean) {
-    if (exact) return pathname === href;
-    return pathname === href || pathname.startsWith(href + "/");
-  }
+  const isActive = (href: string) =>
+    href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
-  const sidebarInner = (
+  return (
     <>
-      {/* Logo */}
-      <div className="flex items-center justify-between gap-2.5 px-4 py-5 border-b border-white/10">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0098f2]">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
-          <span className="font-semibold text-sm tracking-tight">FormRelay</span>
+      {/* ── Desktop sidebar ── */}
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[220px] flex-col bg-[#09090b] md:flex">
+        {/* Logo */}
+        <div className="flex h-14 items-center gap-2.5 px-5 border-b border-[#27272a]">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-white/10">
+            <Zap className="h-3.5 w-3.5 text-white" />
+          </span>
+          <span className="text-sm font-bold text-white">FormRelay</span>
         </div>
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="flex h-7 w-7 items-center justify-center rounded-md text-white/40 hover:text-white md:hidden"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
 
-      {/* Workspace */}
-      <div className="px-4 py-3 border-b border-white/10">
-        <p className="text-xs text-white/40 uppercase tracking-widest font-medium mb-1">Workspace</p>
-        <p className="text-sm font-medium text-white truncate">{workspaceName}</p>
-      </div>
+        {/* Workspace name */}
+        <div className="px-4 py-3 border-b border-[#27272a]">
+          <p className="text-[11px] font-medium uppercase tracking-widest text-[#71717a]">Workspace</p>
+          <p className="mt-0.5 text-sm font-semibold text-white truncate">{workspaceName}</p>
+        </div>
 
-      {/* Onboarding nudge */}
-      {!onboardingComplete && (
-        <Link
-          href="/dashboard/onboarding"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            "mx-3 mt-3 flex items-center gap-2 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors",
-            isActive("/dashboard/onboarding")
-              ? "bg-[#0098f2] text-white"
-              : "bg-[#0098f2]/15 text-[#0098f2] hover:bg-[#0098f2]/25"
-          )}
-        >
-          <Rocket className="h-3.5 w-3.5 shrink-0" />
-          <span>Complete setup</span>
-          <ChevronRight className="ml-auto h-3 w-3" />
-        </Link>
-      )}
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: active ? "#27272a" : "transparent",
+                  color: active ? "#ffffff" : "#d4d4d8",
+                }}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href, item.exact);
-          return (
+        {/* Setup progress (if onboarding incomplete) */}
+        {!onboardingComplete && (
+          <div className="mx-3 mb-3 rounded-[12px] bg-[#1c1c1f] p-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-white">Setup</p>
+              <p className="text-xs text-[#a1a1aa]">{setupProgress}/3</p>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-[#3f3f46] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#0098f2] transition-all"
+                style={{ width: `${(setupProgress / 3) * 100}%` }}
+              />
+            </div>
             <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
-              )}
+              href="/dashboard/onboarding"
+              className="mt-2 block text-xs text-[#0098f2] hover:text-[#38b2f5] transition-colors"
             >
-              <Icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              Continue setup →
             </Link>
-          );
-        })}
-      </nav>
+          </div>
+        )}
 
-      {/* Bottom */}
-      <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
-        {bottomItems.map((item) => {
+        {/* Settings + User */}
+        <div className="border-t border-[#27272a] px-3 py-3 space-y-0.5">
+          <Link
+            href="/dashboard/settings"
+            className="flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: pathname.startsWith("/dashboard/settings") ? "#27272a" : "transparent",
+              color: pathname.startsWith("/dashboard/settings") ? "#ffffff" : "#d4d4d8",
+            }}
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            Settings
+          </Link>
+          <div className="flex items-center justify-between gap-2 px-3 py-2">
+            <p className="text-xs truncate" style={{ color: "#a1a1aa" }}>{userEmail}</p>
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="transition-colors"
+                style={{ color: "#a1a1aa" }}
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </form>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Mobile top bar ── */}
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[#ececee] bg-white/95 backdrop-blur px-5 md:hidden">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[#09090b]">
+            <Zap className="h-3.5 w-3.5 text-white" />
+          </span>
+          <span className="text-sm font-bold text-[#09090b]">FormRelay</span>
+        </div>
+        <form action={logoutAction}>
+          <button type="submit" className="p-2 text-[#a1a1aa] hover:text-[#09090b]">
+            <LogOut className="h-4 w-4" />
+          </button>
+        </form>
+      </header>
+
+      {/* ── Mobile bottom navigation ── */}
+      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 border-t border-[#ececee] bg-white/95 backdrop-blur md:hidden">
+        {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              onClick={() => setMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "bg-white/10 text-white"
-                  : "text-white/60 hover:bg-white/5 hover:text-white"
+                "flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+                active ? "text-[#09090b]" : "text-[#a1a1aa]"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className={cn("h-5 w-5", active ? "text-[#09090b]" : "text-[#a1a1aa]")} />
               {item.label}
             </Link>
           );
         })}
-
-        <div className="mt-2 border-t border-white/10 pt-3">
-          <div className="px-3 mb-1">
-            <p className="text-xs text-white/40 truncate">{userEmail}</p>
-          </div>
-          <SidebarLogout />
-        </div>
-      </div>
-    </>
-  );
-
-  return (
-    <>
-      {/* Mobile top bar */}
-      <div className="fixed top-0 left-0 right-0 z-20 flex h-14 items-center justify-between border-b border-[#e4e4e7] bg-white px-4 md:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sm text-[#09090b]">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#0098f2]">
-            <Zap className="h-3.5 w-3.5 text-white" />
-          </div>
-          FormRelay
-        </Link>
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="flex h-8 w-8 items-center justify-center rounded-md text-[#71717a] hover:bg-[#f4f4f5] transition-colors"
-          aria-label="Open navigation"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Mobile overlay backdrop */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar panel */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-[#111111] text-white transition-transform duration-200 ease-in-out",
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        )}
-      >
-        {sidebarInner}
-      </aside>
+      </nav>
     </>
   );
 }

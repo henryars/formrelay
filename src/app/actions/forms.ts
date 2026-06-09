@@ -220,6 +220,103 @@ export async function updateFieldMappingAction(
   };
 }
 
+export async function updateWebsiteAction(
+  _prevState: EntityFormState,
+  formData: FormData,
+): Promise<EntityFormState> {
+  const { workspace } = await requireWorkspace();
+
+  const websiteId = formData.get("websiteId") as string;
+  if (!websiteId) return { error: "Missing website ID" };
+
+  const parsed = websiteSchema.safeParse({
+    websiteName: formData.get("websiteName"),
+    websiteUrl: formData.get("websiteUrl"),
+    defaultRecipientEmail: formData.get("defaultRecipientEmail"),
+    allowedDomains: formData.get("allowedDomains"),
+    defaultSuccessRedirect: formData.get("defaultSuccessRedirect"),
+    timezone: formData.get("timezone"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the website details" };
+  }
+
+  const website = await prisma.website.findFirst({
+    where: { id: websiteId, workspaceId: workspace.id },
+  });
+
+  if (!website) return { error: "Website not found" };
+
+  const allowedDomains = (parsed.data.allowedDomains ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  await prisma.website.update({
+    where: { id: websiteId },
+    data: {
+      websiteName: parsed.data.websiteName,
+      websiteUrl: parsed.data.websiteUrl,
+      defaultRecipientEmail: parsed.data.defaultRecipientEmail,
+      allowedDomains,
+      defaultSuccessRedirect: parsed.data.defaultSuccessRedirect || null,
+      timezone: parsed.data.timezone || null,
+    },
+  });
+
+  return { message: "Website updated." };
+}
+
+const formInboxSettingsSchema = z.object({
+  formId: z.string().min(1),
+  formName: z.string().min(2, "Form name is required"),
+  recipientEmails: z.string().min(3, "At least one recipient email is required"),
+  successRedirectUrl: z.union([z.literal(""), z.url("Enter a valid success redirect URL")]).optional(),
+});
+
+export async function updateFormInboxSettingsAction(
+  _prevState: EntityFormState,
+  formData: FormData,
+): Promise<EntityFormState> {
+  const { workspace } = await requireWorkspace();
+
+  const parsed = formInboxSettingsSchema.safeParse({
+    formId: formData.get("formId"),
+    formName: formData.get("formName"),
+    recipientEmails: formData.get("recipientEmails"),
+    successRedirectUrl: formData.get("successRedirectUrl"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the form details" };
+  }
+
+  const form = await prisma.formInbox.findFirst({
+    where: { id: parsed.data.formId, website: { workspaceId: workspace.id } },
+  });
+
+  if (!form) return { error: "Form inbox not found" };
+
+  const recipientEmails = parsed.data.recipientEmails
+    .split(",")
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (!recipientEmails.length) return { error: "Add at least one recipient email" };
+
+  await prisma.formInbox.update({
+    where: { id: form.id },
+    data: {
+      formName: parsed.data.formName,
+      recipientEmails,
+      successRedirectUrl: parsed.data.successRedirectUrl || null,
+    },
+  });
+
+  return { message: "Form settings saved." };
+}
+
 export async function updateFormProtectionSettingsAction(
   _prevState: EntityFormState,
   formData: FormData,

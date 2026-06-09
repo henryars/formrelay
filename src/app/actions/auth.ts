@@ -90,7 +90,7 @@ export async function signUpAction(
     email: user.email,
   });
 
-  redirect("/dashboard");
+  redirect("/dashboard/onboarding");
 }
 
 export async function logInAction(
@@ -126,6 +126,8 @@ export async function logInAction(
 
   redirect("/dashboard");
 }
+
+export const logoutAction = logOutAction;
 
 export async function logOutAction() {
   await clearSession();

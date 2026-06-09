@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 
-import { createWebsiteAction } from "@/app/actions/forms";
+import { updateWebsiteAction } from "@/app/actions/forms";
 import { EntityForm } from "@/components/entity-form";
 import { requireWorkspace } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
+
+export const dynamic = "force-dynamic";
 
 function tzOffset(tz: string): string {
   try {
@@ -14,7 +18,7 @@ function tzOffset(tz: string): string {
       timeZoneName: "shortOffset",
     }).formatToParts(new Date());
     const offset = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
-    return offset.replace("GMT", "GMT") || "GMT+0";
+    return offset || "GMT+0";
   } catch {
     return "";
   }
@@ -25,25 +29,34 @@ const TIMEZONES = Intl.supportedValuesOf("timeZone").map((tz) => ({
   value: tz,
 }));
 
-export const dynamic = "force-dynamic";
+export default async function EditWebsitePage({
+  params,
+}: {
+  params: Promise<{ websiteId: string }>;
+}) {
+  const { workspace } = await requireWorkspace();
+  const { websiteId } = await params;
 
-export default async function NewWebsitePage() {
-  await requireWorkspace();
+  const website = await prisma.website.findFirst({
+    where: { id: websiteId, workspaceId: workspace.id },
+  });
+
+  if (!website) notFound();
 
   return (
     <div className="px-8 py-8 max-w-2xl mx-auto space-y-6">
       <div>
         <Link
-          href="/dashboard/websites"
+          href={`/dashboard/websites/${website.id}`}
           className="inline-flex items-center gap-1 text-sm text-[#71717a] hover:text-[#09090b] transition-colors mb-4"
         >
           <ChevronLeft className="h-4 w-4" />
-          Back to websites
+          Back to {website.websiteName}
         </Link>
         <PageHeader
-          label="Add website"
-          title="Register a new website"
-          description="The website you want to receive form submissions for. Each website can have multiple form inboxes."
+          label="Edit website"
+          title={website.websiteName}
+          description="Update your website details and default settings."
         />
       </div>
 
@@ -51,18 +64,20 @@ export default async function NewWebsitePage() {
         <CardHeader>
           <CardTitle className="text-base">Website details</CardTitle>
           <CardDescription>
-            These settings apply to all form inboxes under this website by default.
+            Changes apply to all form inboxes under this website by default.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <EntityForm
-            action={createWebsiteAction}
-            submitLabel="Create website"
+            action={updateWebsiteAction}
+            submitLabel="Save changes"
+            hiddenFields={{ websiteId: website.id }}
             fields={[
               {
                 name: "websiteName",
                 label: "Website name",
                 placeholder: "My Restaurant Website",
+                defaultValue: website.websiteName,
                 hint: "A friendly name you'll recognise in the dashboard.",
               },
               {
@@ -70,19 +85,22 @@ export default async function NewWebsitePage() {
                 label: "Website URL",
                 type: "url",
                 placeholder: "https://mysite.com",
+                defaultValue: website.websiteUrl,
                 hint: "The domain where your forms are hosted.",
               },
               {
                 name: "allowedDomains",
                 label: "Allowed domains",
                 placeholder: "mysite.com, www.mysite.com",
-                hint: "Optional. Comma-separated domains that are allowed to submit to your forms.",
+                defaultValue: website.allowedDomains.join(", "),
+                hint: "Optional. Comma-separated domains allowed to submit to your forms.",
               },
               {
                 name: "timezone",
                 label: "Timezone",
                 kind: "combobox",
                 placeholder: "Search timezones…",
+                defaultValue: website.timezone ?? "",
                 options: TIMEZONES,
                 hint: "Optional. Used for timestamping submissions in email alerts.",
               },

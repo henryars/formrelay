@@ -12,13 +12,16 @@ export default async function LoginPage() {
   if (user) redirect("/dashboard");
 
   return (
-    <div className="w-full max-w-sm space-y-6">
+    <div className="w-full max-w-sm space-y-5">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-[#09090b]">Welcome back</h1>
-        <p className="text-sm text-[#71717a] mt-1">Sign in to your FormRelay account</p>
+        <h1 className="text-2xl font-black text-[#09090b]">Welcome back</h1>
+        <p className="text-sm text-[#71717a] mt-1.5">Sign in to your FormRelay account</p>
       </div>
 
-      <div className="rounded-xl border border-[#e4e4e7] bg-white p-6 shadow-sm">
+      <div
+        className="rounded-[28px] border border-[#ececee] bg-white p-6"
+        style={{ boxShadow: "rgba(0,0,0,0.06) 0px 8px 32px 0px" }}
+      >
         <AuthForm
           action={logInAction}
           submitLabel="Sign in"
@@ -31,7 +34,7 @@ export default async function LoginPage() {
           <Link href="/forgot-password" className="text-[#71717a] hover:text-[#09090b] transition-colors">
             Forgot password?
           </Link>
-          <Link href="/signup" className="text-[#0098f2] hover:underline font-medium">
+          <Link href="/signup" className="font-semibold text-[#09090b] hover:text-[#0098f2] transition-colors">
             Create account
           </Link>
         </div>

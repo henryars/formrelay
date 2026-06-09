@@ -254,6 +254,149 @@ async function main() {
     ],
   });
 
+  // ── Extra inbox leads ──────────────────────────────────────────────────
+  const inboxLeads = [
+    {
+      name: "Amara Nwosu",
+      email: "amara.nwosu@gmail.com",
+      phone: "+2348031122334",
+      message: "Hi, I run a logistics startup and we need a modern website with a contact form and quote request page. What's your timeline and pricing?",
+      spamStatus: "CLEAN",
+      spamScore: 3,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 1,
+    },
+    {
+      name: "Tobi Adeyemi",
+      email: "tobiadeyemi@outlook.com",
+      phone: "+2349056789012",
+      message: "Hello, I saw your portfolio and I'm interested in a redesign of my restaurant website. Can we schedule a call this week?",
+      spamStatus: "CLEAN",
+      spamScore: 2,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 2,
+    },
+    {
+      name: "Chidi Okonkwo",
+      email: "chidi.dev@protonmail.com",
+      phone: null,
+      message: "Quick question — do you offer maintenance packages after launch? I have a Webflow site that needs some ongoing support.",
+      spamStatus: "CLEAN",
+      spamScore: 8,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 3,
+    },
+    {
+      name: "Fatima Al-Hassan",
+      email: "fatima@ahassan.co",
+      phone: "+2347082345671",
+      message: "We're a fashion brand looking for e-commerce integration on our existing site. Budget is flexible for the right team.",
+      spamStatus: "CLEAN",
+      spamScore: 4,
+      form: quoteForm,
+      website: secondWebsite,
+      daysAgo: 4,
+    },
+    {
+      name: "Emeka Eze",
+      email: "emeka.eze95@yahoo.com",
+      phone: "+2348123456780",
+      message: "Please send me a quote for a 5-page business website. I need it up in 3 weeks for a product launch.",
+      spamStatus: "CLEAN",
+      spamScore: 6,
+      form: quoteForm,
+      website: secondWebsite,
+      daysAgo: 5,
+    },
+    {
+      name: "Blessing Osei",
+      email: "blessing.osei@corp.com",
+      phone: "+2330201122334",
+      message: "We're rebranding and need a full website overhaul — new copy, new design, and SEO optimisation. Can you handle all of that?",
+      spamStatus: "SUSPICIOUS",
+      spamScore: 42,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 6,
+    },
+    {
+      name: "Kofi Mensah",
+      email: "kofi.mensah@kofim.io",
+      phone: "+2330541122334",
+      message: "Interested in your web development services. I run a small NGO and we need a donation platform built on a tight budget.",
+      spamStatus: "CLEAN",
+      spamScore: 7,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 7,
+    },
+    {
+      name: "Ngozi Obi",
+      email: "ngoziobi@gmail.com",
+      phone: "+2348079871234",
+      message: "Hello! I loved the work you did for The Web Disciples. I'm a consultant and need a personal brand website with a booking form. Let's talk!",
+      spamStatus: "CLEAN",
+      spamScore: 1,
+      form: contactForm,
+      website: firstWebsite,
+      daysAgo: 8,
+    },
+  ];
+
+  for (const lead of inboxLeads) {
+    const createdAt = new Date(Date.now() - lead.daysAgo * 24 * 60 * 60 * 1000);
+    const sub = await prisma.submission.create({
+      data: {
+        workspaceId: workspace.id,
+        websiteId: lead.website.id,
+        formId: lead.form.id,
+        status: "NEW",
+        spamStatus: lead.spamStatus,
+        spamScore: lead.spamScore,
+        spamBucket: lead.spamStatus === "CLEAN" ? "INBOX" : "SUSPICIOUS",
+        spamCheckedAt: createdAt,
+        notificationStatus: "SENT",
+        submitterName: lead.name,
+        submitterEmail: lead.email,
+        submitterPhone: lead.phone,
+        messagePreview: lead.message.slice(0, 200),
+        rawFields: {
+          name: lead.name,
+          email: lead.email,
+          ...(lead.phone ? { phone: lead.phone } : {}),
+          message: lead.message,
+        },
+        fieldItems: [
+          { key: "name", label: "Name", type: "text", value: lead.name },
+          { key: "email", label: "Email", type: "email", value: lead.email },
+          ...(lead.phone ? [{ key: "phone", label: "Phone", type: "tel", value: lead.phone }] : []),
+          { key: "message", label: "Message", type: "textarea", value: lead.message },
+        ],
+        sourceUrl: `${lead.website.websiteUrl}/contact`,
+        pageTitle: "Contact Us",
+        originHeader: lead.website.websiteUrl,
+        ipHash: hashIpAddress(`10.0.0.${lead.daysAgo}`),
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) demo browser",
+        requestFingerprint: `demo-fp-${lead.daysAgo}`,
+        payloadHash: `demo-hash-${lead.daysAgo}`,
+        createdAt,
+      },
+    });
+    await prisma.emailLog.create({
+      data: {
+        submissionId: sub.id,
+        recipientEmail: lead.website.defaultRecipientEmail,
+        emailSubject: `New message from ${lead.name} — ${lead.form.formName}`,
+        emailStatus: "SENT",
+        sesMessageId: `ses_demo_lead_${lead.daysAgo}`,
+        sentAt: createdAt,
+      },
+    });
+  }
+
   console.log("Seed complete.");
   console.log("Demo login: demo@formrelay.local / demo12345");
   console.log("Demo endpoint 1: http://localhost:3000/f/fm_demo123");

@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Globe, Mail, ShieldCheck, Tag, ExternalLink, Sparkles } from "lucide-react";
+import { ChevronLeft, Mail, ShieldCheck, Tag, ExternalLink } from "lucide-react";
 
 import { FieldMappingForm } from "@/components/field-mapping-form";
 import { FormProtectionForm } from "@/components/form-protection-form";
+import { EntityForm } from "@/components/entity-form";
+import { ConnectCard } from "@/components/connect-card";
+import { CopyButton } from "@/components/copy-button";
+import { updateFormInboxSettingsAction } from "@/app/actions/forms";
 import { env } from "@/lib/env";
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { parseFieldItems } from "@/lib/submission-json";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageHeader } from "@/components/page-header";
-import { CopyButton } from "@/components/copy-button";
-import { Separator } from "@/components/ui/separator";
 
 export const dynamic = "force-dynamic";
 
@@ -52,10 +52,8 @@ export default async function FormDetailPage({
   <input name="name" placeholder="Your name" required />
   <input name="email" type="email" placeholder="Your email" required />
   <textarea name="message" placeholder="Your message"></textarea>
-  <!-- Honeypot (invisible to humans) -->
   <input name="${form.honeypotFieldName ?? "_hp_formrelay"}" tabindex="-1" autocomplete="off"
     style="position:absolute;left:-9999px;opacity:0;height:0;width:0;" />
-  <!-- Load timestamp (helps detect bots) -->
   <input type="hidden" name="_fr_loaded_at" />
   <button type="submit">Send message</button>
 </form>
@@ -64,8 +62,19 @@ export default async function FormDetailPage({
   if (f) f.value = String(Date.now());
 </script>`;
 
+  const aiPrompt = `Please wire the form on this page to a custom backend endpoint.
+
+Follow these requirements:
+1. Update the form tag to use: action="${publicEndpoint}" and method="POST".
+2. Ensure every input field (name, email, message, etc.) has a proper, unique name attribute matching its label.
+3. Handle the submission state gracefully: prevent the default reload on submit, send the data via a fetch POST request, and display a clean "Thank you! Your message has been sent." success message in place of the form.`;
+
+  const spamStatusLabel = (s: string) =>
+    s === "CLEAN" ? "Good" : s === "SUSPICIOUS" ? "Maybe spam" : "Spam";
+
   return (
-    <div className="px-8 py-8 max-w-5xl mx-auto space-y-6">
+    <div className="px-5 py-8 md:px-8 max-w-5xl mx-auto space-y-6">
+      {/* Breadcrumb */}
       <div>
         <Link
           href={`/dashboard/websites/${form.website.id}`}
@@ -74,223 +83,198 @@ export default async function FormDetailPage({
           <ChevronLeft className="h-4 w-4" />
           {form.website.websiteName}
         </Link>
-        <PageHeader
-          label="Form inbox"
-          title={form.formName}
-          description={`${form.website.websiteName} · ${form.formType}`}
-        >
+
+        {/* Form header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#a1a1aa]">Form</p>
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-[#09090b]">{form.formName}</h1>
+            <p className="mt-1 text-sm text-[#71717a]">{form.website.websiteName} · {form.formType}</p>
+          </div>
           <Badge variant={form.status === "ACTIVE" ? "success" : "secondary"}>
-            {form.status}
+            {form.status === "ACTIVE" ? "Active" : form.status}
           </Badge>
-        </PageHeader>
+        </div>
       </div>
 
       {/* Endpoint hero */}
-      <Card className="border-[#e4e4e7] bg-gradient-to-r from-[#fafafa] to-white">
-        <CardContent className="p-5">
-          <p className="text-xs font-medium text-[#71717a] uppercase tracking-widest mb-2">Endpoint URL</p>
-          <div className="flex items-center gap-3">
-            <code className="flex-1 text-sm font-mono text-[#09090b] bg-[#f4f4f5] px-4 py-2.5 rounded-lg border border-[#e4e4e7] overflow-x-auto">
-              {publicEndpoint}
-            </code>
-            <CopyButton text={publicEndpoint} className="shrink-0" />
-          </div>
-          <div className="mt-4 grid grid-cols-3 gap-3">
-            <div className="flex items-center gap-2">
-              <Mail className="h-3.5 w-3.5 text-[#a1a1aa]" />
-              <div>
-                <p className="text-xs text-[#a1a1aa]">Recipients</p>
-                <p className="text-xs font-medium text-[#09090b] truncate">{form.recipientEmails.join(", ")}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-3.5 w-3.5 text-[#a1a1aa]" />
-              <div>
-                <p className="text-xs text-[#a1a1aa]">Spam protection</p>
-                <p className="text-xs font-medium text-[#09090b]">{form.spamProtectionLevel}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Tag className="h-3.5 w-3.5 text-[#a1a1aa]" />
-              <div>
-                <p className="text-xs text-[#a1a1aa]">Submissions</p>
-                <p className="text-xs font-medium text-[#09090b]">{form.submissions.length}</p>
-              </div>
+      <div
+        className="rounded-[28px] bg-white border border-[#ececee] p-6"
+        style={{ boxShadow: "rgba(0,0,0,0.04) 0px 4px 12px 0px" }}
+      >
+        <p className="text-xs font-medium text-[#a1a1aa] uppercase tracking-widest mb-3">Your form&apos;s address</p>
+        <div className="flex items-center gap-3">
+          <code className="flex-1 text-sm font-mono font-semibold text-[#09090b] bg-[#f4f4f5] px-4 py-2.5 rounded-[14px] border border-[#ececee] overflow-x-auto">
+            {publicEndpoint}
+          </code>
+          <CopyButton text={publicEndpoint} className="shrink-0" />
+        </div>
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-3.5 w-3.5 text-[#a1a1aa]" />
+            <div>
+              <p className="text-xs text-[#a1a1aa]">Send to</p>
+              <p className="text-xs font-semibold text-[#09090b] truncate">{form.recipientEmails.join(", ")}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-3.5 w-3.5 text-[#a1a1aa]" />
+            <div>
+              <p className="text-xs text-[#a1a1aa]">How strict spam filtering is</p>
+              <p className="text-xs font-semibold text-[#09090b]">{form.spamProtectionLevel}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tag className="h-3.5 w-3.5 text-[#a1a1aa]" />
+            <div>
+              <p className="text-xs text-[#a1a1aa]">Messages received</p>
+              <p className="text-xs font-semibold text-[#09090b]">{form.submissions.length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Connect card — always visible, above tabs */}
+      <ConnectCard
+        publicEndpoint={publicEndpoint}
+        htmlSnippet={htmlSnippet}
+        honeypotFieldName={form.honeypotFieldName ?? "_hp_formrelay"}
+        aiPrompt={aiPrompt}
+      />
 
       {/* Tabs */}
-      <Tabs defaultValue="connect">
+      <Tabs defaultValue="overview">
         <TabsList className="w-full sm:w-auto">
-          <TabsTrigger value="connect">Connect</TabsTrigger>
-          <TabsTrigger value="protection">Protection</TabsTrigger>
-          <TabsTrigger value="mapping">Field mapping</TabsTrigger>
-          <TabsTrigger value="submissions">
-            Submissions
-            {form.submissions.length > 0 && (
-              <span className="ml-1.5 rounded-full bg-[#0098f2]/10 text-[#0098f2] px-1.5 py-0.5 text-xs">
-                {form.submissions.length}
-              </span>
-            )}
-          </TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="spam">Spam & Filtering</TabsTrigger>
+          <TabsTrigger value="mapping">Field Mapping</TabsTrigger>
         </TabsList>
 
-        {/* Connect tab */}
-        <TabsContent value="connect" className="mt-4 space-y-4">
-          {/* AI Prompt card */}
-          <Card className="border-[#0098f2]/20 bg-gradient-to-br from-[#f0f8ff] to-white">
+        {/* Overview tab */}
+        <TabsContent value="overview" className="mt-4 space-y-4">
+          <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-7 w-7 rounded-lg bg-[#0098f2]/10 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-[#0098f2]" />
+              <CardTitle className="text-base">Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4 mb-5 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-[#a1a1aa]">Total messages</p>
+                  <p className="text-2xl font-black text-[#09090b] mt-0.5">{form.submissions.length}</p>
                 </div>
                 <div>
-                  <CardTitle className="text-base">Connect with AI</CardTitle>
-                  <CardDescription className="text-xs mt-0.5">
-                    Paste this prompt into Lovable, Replit, ChatGPT, or any AI tool to wire up your form automatically.
-                  </CardDescription>
+                  <p className="text-xs text-[#a1a1aa]">Last message</p>
+                  <p className="text-sm font-semibold text-[#09090b] mt-0.5">
+                    {latestSubmission
+                      ? new Date(latestSubmission.createdAt).toLocaleDateString()
+                      : "Never"}
+                  </p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="relative">
-                <pre className="overflow-x-auto rounded-lg bg-[#1a1a1a] text-[#e8e8e8] p-5 text-sm leading-6 font-mono whitespace-pre-wrap">
-{`Please wire the form on this page to a custom backend endpoint.
-
-Follow these requirements:
-1. Update the form tag to use: action="${publicEndpoint}" and method="POST".
-2. Ensure every input field (name, email, message, etc.) has a proper, unique name attribute matching its label.
-3. Handle the submission state gracefully: prevent the default reload on submit, send the data via a fetch POST request, and display a clean "Thank you! Your message has been sent." success message in place of the form.`}
-                </pre>
-                <div className="absolute top-3 right-3">
-                  <CopyButton text={`Please wire the form on this page to a custom backend endpoint.\n\nFollow these requirements:\n1. Update the form tag to use: action="${publicEndpoint}" and method="POST".\n2. Ensure every input field (name, email, message, etc.) has a proper, unique name attribute matching its label.\n3. Handle the submission state gracefully: prevent the default reload on submit, send the data via a fetch POST request, and display a clean "Thank you! Your message has been sent." success message in place of the form.`} />
-                </div>
-              </div>
+              <Link
+                href={`/dashboard/submissions?formId=${form.id}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#ececee] bg-white px-4 py-2 text-sm font-medium text-[#52525b] hover:bg-[#f4f4f5] transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                View all messages for this form
+              </Link>
             </CardContent>
           </Card>
 
-          {/* Manual setup */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Manual setup</CardTitle>
-              <CardDescription>Choose your stack and copy the snippet directly.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="html">
-                <TabsList>
-                  <TabsTrigger value="html">HTML</TabsTrigger>
-                  <TabsTrigger value="react">React</TabsTrigger>
-                  <TabsTrigger value="other">Other</TabsTrigger>
-                </TabsList>
-                <TabsContent value="html" className="mt-3 space-y-3">
-                  <div className="relative">
-                    <pre className="overflow-x-auto rounded-lg bg-[#1a1a1a] text-[#e8e8e8] p-5 text-xs leading-6 font-mono">
-                      {htmlSnippet}
-                    </pre>
-                    <div className="absolute top-3 right-3">
-                      <CopyButton text={htmlSnippet} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-[#a1a1aa]">
-                    The honeypot field must stay visually hidden. The <code className="bg-[#f4f4f5] px-1 rounded">_fr_loaded_at</code> field helps detect bot submissions.
-                  </p>
-                </TabsContent>
-                <TabsContent value="react" className="mt-3 space-y-3">
-                  <div className="relative">
-                    <pre className="overflow-x-auto rounded-lg bg-[#1a1a1a] text-[#e8e8e8] p-5 text-xs leading-6 font-mono">{`"use client";
-import { useState, useRef } from "react";
+          {form.submissions.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Recent messages</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y divide-[#f4f4f5]">
+                  {form.submissions.slice(0, 5).map((sub) => (
+                    <Link
+                      key={sub.id}
+                      href={`/dashboard/submissions/${sub.id}`}
+                      className="flex items-start justify-between px-6 py-4 hover:bg-[#fafafa] transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#09090b]">
+                          {sub.submitterName ?? "Unknown sender"}
+                        </p>
+                        <p className="text-xs text-[#a1a1aa]">{sub.submitterEmail ?? "No email"}</p>
+                        <p className="text-xs text-[#71717a] mt-1.5 line-clamp-2">
+                          {sub.messagePreview ?? "Submission stored."}
+                        </p>
+                      </div>
+                      <div className="ml-4 shrink-0">
+                        <Badge
+                          variant={
+                            sub.spamStatus === "CLEAN"
+                              ? "success"
+                              : sub.spamStatus === "SUSPICIOUS"
+                              ? "warning"
+                              : "destructive"
+                          }
+                          className="text-xs"
+                        >
+                          {spamStatusLabel(sub.spamStatus)}
+                        </Badge>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-export function ContactForm() {
-  const [sent, setSent] = useState(false);
-  const ref = useRef<HTMLInputElement>(null);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    if (ref.current) ref.current.value = String(Date.now());
-    await fetch("${publicEndpoint}", { method: "POST", body: data });
-    setSent(true);
-  }
-
-  if (sent) return <p>Thank you! Your message has been sent.</p>;
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <input name="name" placeholder="Your name" required />
-      <input name="email" type="email" placeholder="Your email" required />
-      <textarea name="message" placeholder="Your message" />
-      {/* Honeypot */}
-      <input name="${form.honeypotFieldName ?? "_hp_formrelay"}" tabIndex={-1}
-        style={{ position: "absolute", left: -9999 }} />
-      <input type="hidden" name="_fr_loaded_at" ref={ref} />
-      <button type="submit">Send</button>
-    </form>
-  );
-}`}</pre>
-                    <div className="absolute top-3 right-3">
-                      <CopyButton text={`"use client";\nimport { useState, useRef } from "react";\n\nexport function ContactForm() {\n  const [sent, setSent] = useState(false);\n  const ref = useRef<HTMLInputElement>(null);\n\n  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {\n    e.preventDefault();\n    const data = new FormData(e.currentTarget);\n    if (ref.current) ref.current.value = String(Date.now());\n    await fetch("${publicEndpoint}", { method: "POST", body: data });\n    setSent(true);\n  }\n\n  if (sent) return <p>Thank you! Your message has been sent.</p>;\n\n  return (\n    <form onSubmit={handleSubmit}>\n      <input name="name" placeholder="Your name" required />\n      <input name="email" type="email" placeholder="Your email" required />\n      <textarea name="message" placeholder="Your message" />\n      <input name="${form.honeypotFieldName ?? "_hp_formrelay"}" tabIndex={-1} style={{ position: "absolute", left: -9999 }} />\n      <input type="hidden" name="_fr_loaded_at" ref={ref} />\n      <button type="submit">Send</button>\n    </form>\n  );\n}`} />
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="other" className="mt-3 space-y-3">
-                  <p className="text-sm text-[#52525b]">
-                    Any tool that can send an HTTP <code className="bg-[#f4f4f5] px-1 rounded text-xs">POST</code> request with form-encoded data works with FormRelay.
-                  </p>
-                  <div className="relative">
-                    <pre className="overflow-x-auto rounded-lg bg-[#1a1a1a] text-[#e8e8e8] p-5 text-xs leading-6 font-mono">{`# curl example
-curl -X POST "${publicEndpoint}" \\
-  -F "name=Jane Doe" \\
-  -F "email=jane@example.com" \\
-  -F "message=Hello from curl"`}</pre>
-                    <div className="absolute top-3 right-3">
-                      <CopyButton text={`curl -X POST "${publicEndpoint}" \\\n  -F "name=Jane Doe" \\\n  -F "email=jane@example.com" \\\n  -F "message=Hello from curl"`} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-[#a1a1aa]">Works with Webflow, Framer, Bubble, Make, Zapier webhooks, and any fetch/axios call.</p>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
+        {/* Settings tab */}
+        <TabsContent value="settings" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Test your connection</CardTitle>
-              <CardDescription>After adding the snippet, submit the form and check your inbox.</CardDescription>
+              <CardTitle className="text-base">Form settings</CardTitle>
+              <CardDescription>
+                Update the form name, recipient emails, and success redirect URL.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <ol className="space-y-2 text-sm text-[#52525b]">
-                {[
-                  "Add the snippet to your website's HTML",
-                  "Fill in and submit your form",
-                  "Check this page's Submissions tab for the incoming entry",
-                  "Check the recipient email for the notification",
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <span className="h-5 w-5 rounded-full bg-[#f4f4f5] text-[#71717a] text-xs flex items-center justify-center shrink-0 font-medium mt-0.5">
-                      {i + 1}
-                    </span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-              <Separator className="my-4" />
-              <Link href={`/dashboard/submissions?formId=${form.id}`}>
-                <Button variant="outline" size="sm" className="gap-1.5">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  View all submissions for this form
-                </Button>
-              </Link>
+              <EntityForm
+                action={updateFormInboxSettingsAction}
+                submitLabel="Save settings"
+                hiddenFields={{ formId: form.id }}
+                fields={[
+                  {
+                    name: "formName",
+                    label: "Form name",
+                    placeholder: "Contact Form",
+                    defaultValue: form.formName,
+                    hint: "A label that identifies this form in your dashboard and email alerts.",
+                  },
+                  {
+                    name: "recipientEmails",
+                    label: "Recipient email(s)",
+                    placeholder: "hello@mysite.com, sales@mysite.com",
+                    defaultValue: form.recipientEmails.join(", "),
+                    hint: "Comma-separated list. Submissions will be emailed to all addresses.",
+                  },
+                  {
+                    name: "successRedirectUrl",
+                    label: "Success redirect URL",
+                    type: "url",
+                    placeholder: "https://mysite.com/thank-you",
+                    defaultValue: form.successRedirectUrl ?? "",
+                    hint: "Optional. Where to redirect users after a successful submission.",
+                    optional: true,
+                  },
+                ]}
+              />
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Protection tab */}
-        <TabsContent value="protection" className="mt-4">
+        {/* Spam & Filtering tab */}
+        <TabsContent value="spam" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Spam & protection settings</CardTitle>
+              <CardTitle className="text-base">Spam & Filtering</CardTitle>
               <CardDescription>
                 Standard mode scores suspicious patterns without throwing away real leads. Use Strict only when under active attack.
               </CardDescription>
@@ -313,11 +297,11 @@ curl -X POST "${publicEndpoint}" \\
           </Card>
         </TabsContent>
 
-        {/* Field mapping tab */}
+        {/* Field Mapping tab */}
         <TabsContent value="mapping" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Field mapping</CardTitle>
+              <CardTitle className="text-base">Field Mapping</CardTitle>
               <CardDescription>
                 Tell FormRelay which field keys correspond to name, email, phone, and message. This powers sender info in email alerts and submission previews.
               </CardDescription>
@@ -335,55 +319,11 @@ curl -X POST "${publicEndpoint}" \\
                   }}
                 />
               ) : (
-                <div className="rounded-lg bg-[#fafafa] border border-dashed border-[#e4e4e7] p-8 text-center">
-                  <p className="text-sm font-medium text-[#71717a]">No submissions yet</p>
+                <div className="rounded-[20px] bg-[#f4f4f5] border border-dashed border-[#ececee] p-8 text-center">
+                  <p className="text-sm font-semibold text-[#71717a]">No messages yet</p>
                   <p className="text-xs text-[#a1a1aa] mt-1">
                     Submit the form at least once and the detected field keys will appear here for mapping.
                   </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Submissions tab */}
-        <TabsContent value="submissions" className="mt-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Recent submissions</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {form.submissions.length ? (
-                <div className="divide-y divide-[#f4f4f5]">
-                  {form.submissions.map((sub) => (
-                    <Link
-                      key={sub.id}
-                      href={`/dashboard/submissions/${sub.id}`}
-                      className="flex items-start justify-between px-6 py-4 hover:bg-[#fafafa] transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-[#09090b]">
-                          {sub.submitterName ?? "Unknown sender"}
-                        </p>
-                        <p className="text-xs text-[#a1a1aa]">{sub.submitterEmail ?? "No email"}</p>
-                        <p className="text-xs text-[#71717a] mt-1.5 line-clamp-2">
-                          {sub.messagePreview ?? "Submission stored."}
-                        </p>
-                      </div>
-                      <div className="ml-4 shrink-0">
-                        <Badge
-                          variant={sub.spamStatus === "CLEAN" ? "success" : sub.spamStatus === "SUSPICIOUS" ? "warning" : "destructive"}
-                          className="text-xs"
-                        >
-                          {sub.spamStatus}
-                        </Badge>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="px-6 py-10 text-center">
-                  <p className="text-sm text-[#a1a1aa]">No submissions yet. Connect the form and send a test.</p>
                 </div>
               )}
             </CardContent>

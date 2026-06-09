@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Plus, ExternalLink, FileText, Inbox } from "lucide-react";
+import { ChevronLeft, Plus, ExternalLink, FileText, Inbox, Pencil } from "lucide-react";
 
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -48,12 +48,20 @@ export default async function WebsiteDetailPage({
           title={website.websiteName}
           description={website.websiteUrl}
         >
-          <Link href={`/dashboard/forms/new?websiteId=${website.id}`}>
-            <Button size="sm" className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Create form inbox
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/websites/${website.id}/edit`}>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            </Link>
+            <Link href={`/dashboard/forms/new?websiteId=${website.id}`}>
+              <Button size="sm" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                Create form inbox
+              </Button>
+            </Link>
+          </div>
         </PageHeader>
       </div>
 

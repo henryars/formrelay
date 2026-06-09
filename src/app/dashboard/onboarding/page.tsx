@@ -1,17 +1,14 @@
 import Link from "next/link";
-import { Check, Globe, FileText, Zap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Globe, FileText, Zap, Check, ArrowRight } from "lucide-react";
 
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/page-header";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
   const { workspace } = await requireWorkspace();
+
   const [websiteCount, formCount, submissionCount] = await Promise.all([
     prisma.website.count({ where: { workspaceId: workspace.id } }),
     prisma.formInbox.count({ where: { website: { workspaceId: workspace.id } } }),
@@ -22,38 +19,35 @@ export default async function OnboardingPage() {
     {
       num: 1,
       icon: Globe,
-      title: "Register your website",
+      title: "Add your website",
       description:
-        "Add the website where your form lives. This groups your form inboxes and submissions in one place.",
+        "Tell us the name of your website and where you want to receive messages. This takes about 30 seconds.",
       done: websiteCount > 0,
-      href: "/dashboard/websites/new",
-      cta: websiteCount > 0 ? "View websites" : "Add website",
+      ctaLabel: websiteCount > 0 ? "View websites" : "Add website",
       ctaHref: websiteCount > 0 ? "/dashboard/websites" : "/dashboard/websites/new",
-      hint: "You'll need the website's name and URL.",
+      hint: "You'll need your website's name and URL.",
     },
     {
       num: 2,
       icon: FileText,
-      title: "Create a form inbox",
+      title: "Create your first form",
       description:
-        "Each form inbox gets a unique public endpoint URL. Point your HTML form's action attribute to it and submissions start flowing.",
+        "Give your form a name like \"Contact form\". We'll generate a unique address for it right away.",
       done: formCount > 0,
-      href: "/dashboard/forms/new",
-      cta: formCount > 0 ? "View forms" : "Create form inbox",
+      ctaLabel: formCount > 0 ? "View forms" : "Create form",
       ctaHref: formCount > 0 ? "/dashboard/forms" : "/dashboard/forms/new",
-      hint: "You'll choose the website, add recipient emails, and set spam settings.",
+      hint: "Choose the website you just added and enter the email where you want messages sent.",
     },
     {
       num: 3,
       icon: Zap,
-      title: "Send a test submission",
+      title: "Connect your form",
       description:
-        "Copy the HTML snippet from your form detail page, add it to your site, and submit the form. You should receive an email within seconds.",
+        "We'll give you a one-click prompt to paste into your AI builder, or a code snippet for manual setup. Then send yourself a test message.",
       done: submissionCount > 0,
-      href: "/dashboard/submissions",
-      cta: submissionCount > 0 ? "View submissions" : "View submissions",
-      ctaHref: "/dashboard/submissions",
-      hint: "Check your form's connection snippet — it includes the honeypot and load-time fields.",
+      ctaLabel: "Connect my form",
+      ctaHref: "/dashboard/forms",
+      hint: "After connecting, submit the form once to confirm everything is working.",
     },
   ];
 
@@ -61,116 +55,140 @@ export default async function OnboardingPage() {
   const allDone = completedCount === steps.length;
 
   return (
-    <div className="px-8 py-8 max-w-3xl mx-auto space-y-8">
-      <PageHeader
-        label="Setup guide"
-        title="Get your first form working"
-        description="Three steps to go from zero to receiving live form submissions with spam protection and email alerts."
-      />
+    <div className="min-h-[calc(100vh-56px)] bg-[#f4f4f5] px-5 py-10 md:px-8">
+      <div className="mx-auto max-w-[600px] space-y-6">
 
-      {/* Progress */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 rounded-full bg-[#e4e4e7] overflow-hidden">
-          <div
-            className="h-full rounded-full bg-[#0098f2] transition-all"
-            style={{ width: `${(completedCount / steps.length) * 100}%` }}
-          />
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#09090b]">
+            <Zap className="h-6 w-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-[#09090b]">
+            {allDone ? "You're all set! 🎉" : "Let's get your form working"}
+          </h1>
+          <p className="mt-2 text-sm text-[#71717a]">
+            {allDone
+              ? "Your form is live and receiving messages."
+              : "3 steps to go from zero to receiving real messages from your website."}
+          </p>
         </div>
-        <span className="text-sm text-[#71717a] tabular-nums shrink-0">
-          {completedCount} / {steps.length} done
-        </span>
-      </div>
 
-      {allDone && (
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-5 flex items-center gap-4">
-            <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
-            <div>
-              <p className="font-semibold text-green-900">You&apos;re all set!</p>
-              <p className="text-sm text-green-700 mt-0.5">
-                Your form is live and receiving submissions. Check your inbox for email alerts.
+        {/* Progress bar */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-2 rounded-full bg-[#ececee] overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[#09090b] transition-all duration-500"
+              style={{ width: `${(completedCount / steps.length) * 100}%` }}
+            />
+          </div>
+          <span className="text-xs font-semibold text-[#71717a] tabular-nums shrink-0">
+            {completedCount} of {steps.length} done
+          </span>
+        </div>
+
+        {/* All done card */}
+        {allDone && (
+          <div className="rounded-[28px] bg-[#f0fdf4] border border-[#bbf7d0] p-6 flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#16a34a]">
+              <Check className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-[#15803d]">Your form is live!</p>
+              <p className="mt-1 text-sm text-[#16a34a]">
+                Messages from your website will now land in your inbox with email alerts.
               </p>
             </div>
-            <Link href="/dashboard" className="ml-auto shrink-0">
-              <Button size="sm" variant="secondary">Go to dashboard</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Steps */}
-      <div className="space-y-4">
-        {steps.map((step) => {
-          const Icon = step.icon;
-          return (
-            <Card
-              key={step.num}
-              className={cn(
-                "transition-all",
-                step.done && "opacity-75"
-              )}
+            <Link
+              href="/dashboard"
+              className="shrink-0 rounded-full px-4 py-2 text-xs font-bold"
+              style={{ backgroundColor: "#09090b", color: "#ffffff" }}
             >
-              <CardContent className="p-6">
-                <div className="flex gap-5">
-                  {/* Step indicator */}
+              Go to dashboard
+            </Link>
+          </div>
+        )}
+
+        {/* Steps */}
+        <div className="space-y-4">
+          {steps.map((step) => {
+            const Icon = step.icon;
+            return (
+              <div
+                key={step.num}
+                className={`rounded-[28px] bg-white border p-6 transition-all ${
+                  step.done ? "border-[#bbf7d0] opacity-75" : "border-[#ececee]"
+                }`}
+                style={{ boxShadow: "rgba(0,0,0,0.04) 0px 4px 12px 0px" }}
+              >
+                <div className="flex gap-4">
                   <div
-                    className={cn(
-                      "h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold",
-                      step.done
-                        ? "bg-green-100 text-green-700"
-                        : "bg-[#f4f4f5] text-[#71717a]"
-                    )}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] ${
+                      step.done ? "bg-[#f0fdf4]" : "bg-[#f4f4f5]"
+                    }`}
                   >
-                    {step.done ? <Check className="h-4 w-4" /> : step.num}
+                    {step.done ? (
+                      <Check className="h-5 w-5 text-[#16a34a]" />
+                    ) : (
+                      <Icon className={`h-5 w-5 ${
+                        step.num === completedCount + 1 ? "text-[#0098f2]" : "text-[#a1a1aa]"
+                      }`} />
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className={cn(
-                          "font-semibold",
-                          step.done ? "text-[#71717a] line-through" : "text-[#09090b]"
-                        )}>
+                      <div className="flex-1">
+                        <h3
+                          className={`font-bold text-base ${
+                            step.done ? "text-[#a1a1aa] line-through" : "text-[#09090b]"
+                          }`}
+                        >
                           {step.title}
                         </h3>
-                        <p className="mt-1 text-sm text-[#71717a] leading-relaxed">
+                        <p className="mt-1.5 text-sm leading-[1.65] text-[#71717a]">
                           {step.description}
                         </p>
                         {!step.done && (
-                          <p className="mt-2 text-xs text-[#a1a1aa] flex items-center gap-1">
-                            <span className="inline-block h-1 w-1 rounded-full bg-[#a1a1aa]" />
-                            {step.hint}
+                          <p className="mt-2 text-xs text-[#a1a1aa]">
+                            💡 {step.hint}
                           </p>
                         )}
                       </div>
-                      <Link href={step.ctaHref} className="shrink-0">
-                        <Button
-                          size="sm"
-                          variant={step.done ? "secondary" : "default"}
-                          className="gap-1.5"
-                        >
-                          {step.cta}
-                          {!step.done && <ArrowRight className="h-3.5 w-3.5" />}
-                        </Button>
+                      <Link
+                        href={step.ctaHref}
+                        className="shrink-0 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors"
+                        style={
+                          step.done
+                            ? { backgroundColor: "#e4e4e7", color: "#3f3f46" }
+                            : {
+                                backgroundColor: "#09090b",
+                                color: "#ffffff",
+                                boxShadow:
+                                  "rgba(255,255,255,0.5) 0px 0.5px 0px 0px inset, rgba(117,123,133,0.4) 0px 9px 14px -5px inset, rgb(44,46,52) 0px 0px 0px 1.5px, rgba(0,0,0,0.14) 0px 4px 6px 0px",
+                              }
+                        }
+                      >
+                        {step.ctaLabel}
+                        {!step.done && <ArrowRight className="h-3.5 w-3.5" />}
                       </Link>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+              </div>
+            );
+          })}
+        </div>
 
-      {/* Help note */}
-      <div className="text-center">
-        <p className="text-sm text-[#a1a1aa]">
-          Need help? Check the{" "}
-          <Link href="/docs" className="text-[#0098f2] hover:underline">
-            documentation
-          </Link>{" "}
-          for integration examples.
-        </p>
+        {!allDone && (
+          <div className="text-center">
+            <Link
+              href="/dashboard"
+              className="text-sm text-[#a1a1aa] hover:text-[#52525b] transition-colors"
+            >
+              Skip for now, go to dashboard →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
