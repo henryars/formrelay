@@ -40,8 +40,9 @@ export default function BuildersPage() {
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-semibold text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-semibold"
               style={{
+                color: "#ffffff",
                 boxShadow:
                   "rgba(255,255,255,0.5) 0px 0.5px 0px 0px inset, rgba(117,123,133,0.4) 0px 9px 14px -5px inset, rgb(44,46,52) 0px 0px 0px 1.5px, rgba(0,0,0,0.14) 0px 4px 6px 0px",
               }}
@@ -91,7 +92,7 @@ export default function BuildersPage() {
                 className="flex items-center gap-4 rounded-[20px] bg-white border border-[#ececee] p-5"
                 style={{ boxShadow: "rgba(0,0,0,0.04) 0px 4px 12px 0px" }}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#09090b] text-xs font-black text-white">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#09090b] text-xs font-black" style={{ color: "#ffffff" }}>
                   {i + 1}
                 </span>
                 <p className="text-sm font-semibold text-[#09090b]">{step}</p>
@@ -100,8 +101,9 @@ export default function BuildersPage() {
           </div>
           <Link
             href="/signup"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-semibold text-white"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-semibold"
             style={{
+              color: "#ffffff",
               boxShadow:
                 "rgba(255,255,255,0.5) 0px 0.5px 0px 0px inset, rgba(117,123,133,0.4) 0px 9px 14px -5px inset, rgb(44,46,52) 0px 0px 0px 1.5px, rgba(0,0,0,0.14) 0px 4px 6px 0px",
             }}

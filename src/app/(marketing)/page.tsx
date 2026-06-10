@@ -158,8 +158,9 @@ export default function Home() {
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-medium text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-[#09090b] px-7 py-3.5 text-base font-medium"
               style={{
+                color: "#ffffff",
                 boxShadow:
                   "rgba(255,255,255,0.5) 0px 0.5px 0px 0px inset, rgba(117,123,133,0.4) 0px 9px 14px -5px inset, rgb(44,46,52) 0px 0px 0px 1.5px, rgba(0,0,0,0.14) 0px 4px 6px 0px",
               }}
@@ -289,17 +290,45 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Builders bar ── */}
-      <section className="border-y border-[#ececee] bg-white px-5 py-5 md:px-8">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-center gap-x-8 gap-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] whitespace-nowrap">
-            Works with
+      {/* ── Logo cloud ── */}
+      <section className="border-y border-[#ececee] bg-white px-5 py-10 md:px-8">
+        <div className="mx-auto max-w-[1200px]">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-[#a1a1aa] mb-8">
+            Works with every tool you already use
           </p>
-          {builders.map((b) => (
-            <span key={b} className="text-sm font-semibold text-[#71717a]">
-              {b}
-            </span>
-          ))}
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-6">
+            {[
+              { name: "Lovable",    logo: "https://lovable.dev/img/logo/logowhite.svg",                                                              bg: "#FF3B6B",  invert: false },
+              { name: "Webflow",   logo: "https://cdn.simpleicons.org/webflow/146EF5",                                                               bg: "none",     invert: false },
+              { name: "Framer",    logo: "https://cdn.simpleicons.org/framer/000000",                                                                bg: "none",     invert: false },
+              { name: "ChatGPT",   logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/ChatGPT-Logo.svg/960px-ChatGPT-Logo.svg.png",    bg: "none",     invert: false },
+              { name: "Replit",    logo: "https://cdn.simpleicons.org/replit/F26207",                                                                bg: "none",     invert: false },
+              { name: "WordPress", logo: "https://cdn.simpleicons.org/wordpress/21759B",                                                             bg: "none",     invert: false },
+              { name: "Next.js",   logo: "https://cdn.simpleicons.org/nextdotjs/000000",                                                             bg: "none",     invert: false },
+              { name: "React",     logo: "https://cdn.simpleicons.org/react/61DAFB",                                                                 bg: "none",     invert: false },
+              { name: "Wix",       logo: "https://cdn.simpleicons.org/wix/000000",                                                                   bg: "none",     invert: false },
+              { name: "Squarespace", logo: "https://cdn.simpleicons.org/squarespace/000000",                                                         bg: "none",     invert: false },
+              { name: "Bolt",      logo: "https://cdn.jsdelivr.net/gh/callback-io/allogo@main/public/logos/bolt/icon.svg",                          bg: "#09090b",  invert: false },
+              { name: "Vue",       logo: "https://cdn.simpleicons.org/vuedotjs/4FC08D",                                                              bg: "none",     invert: false },
+            ].map(({ name, logo, bg, invert }) => (
+              <div key={name} className="flex flex-col items-center gap-2">
+                <div
+                  className="h-10 w-10 rounded-[10px] flex items-center justify-center overflow-hidden"
+                  style={{ background: bg === "none" ? "transparent" : bg }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logo}
+                    alt={name}
+                    width={28}
+                    height={28}
+                    style={{ objectFit: "contain", filter: invert ? "invert(1)" : "none" }}
+                  />
+                </div>
+                <span className="text-[11px] font-medium" style={{ color: "#a1a1aa" }}>{name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -429,21 +458,30 @@ export default function Home() {
                 )}
                 <p className="text-sm font-semibold text-[#0098f2]">{plan.name}</p>
                 <div className="mt-4 flex items-end gap-1">
-                  <span className={`text-4xl font-black tracking-tight ${plan.highlighted ? "text-white" : "text-[#09090b]"}`}>
+                  <span
+                    className="text-4xl font-black tracking-tight"
+                    style={{ color: plan.highlighted ? "#ffffff" : "#09090b" }}
+                  >
                     {plan.price}
                   </span>
-                  <span className={`mb-1.5 text-sm ${plan.highlighted ? "text-white/50" : "text-[#a1a1aa]"}`}>
+                  <span
+                    className="mb-1.5 text-sm"
+                    style={{ color: plan.highlighted ? "rgba(255,255,255,0.55)" : "#a1a1aa" }}
+                  >
                     {plan.priceNote}
                   </span>
                 </div>
-                <p className={`mt-3 text-sm leading-[1.6] ${plan.highlighted ? "text-white/60" : "text-[#71717a]"}`}>
+                <p
+                  className="mt-3 text-sm leading-[1.6]"
+                  style={{ color: plan.highlighted ? "rgba(255,255,255,0.65)" : "#71717a" }}
+                >
                   {plan.description}
                 </p>
                 <ul className="mt-6 flex-1 space-y-3">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-center gap-2.5 text-sm">
                       <CheckCircle2 className={`h-4 w-4 shrink-0 ${plan.highlighted ? "text-[#0098f2]" : "text-[#16a34a]"}`} />
-                      <span className={plan.highlighted ? "text-white/80" : "text-[#52525b]"}>{f}</span>
+                      <span style={{ color: plan.highlighted ? "rgba(255,255,255,0.85)" : "#52525b" }}>{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -475,25 +513,27 @@ export default function Home() {
             <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
               Stop losing messages from your website.
             </h2>
-            <p className="mt-4 text-lg text-white/60 max-w-xl mx-auto">
+            <p className="mt-4 text-lg max-w-xl mx-auto" style={{ color: "rgba(255,255,255,0.65)" }}>
               Set up takes under 2 minutes. No server needed. No tech skills required.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-semibold text-[#09090b] hover:bg-[#f4f4f5] transition-colors"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-3.5 text-base font-semibold hover:bg-[#f4f4f5] transition-colors"
+                style={{ color: "#09090b" }}
               >
                 Start for free
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/pricing"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-base font-medium text-white hover:bg-white/10 transition-colors"
+                className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-base font-medium transition-colors"
+                style={{ border: "1px solid rgba(255,255,255,0.25)", color: "#ffffff" }}
               >
                 View pricing
               </Link>
             </div>
-            <p className="mt-5 text-sm text-white/30">No credit card required · Free plan available</p>
+            <p className="mt-5 text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>No credit card required · Free plan available</p>
           </div>
         </div>
       </section>

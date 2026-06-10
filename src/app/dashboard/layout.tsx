@@ -23,7 +23,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         setupProgress={setupProgress}
       />
       {/* md:ml-[220px] matches sidebar width; pt-14 accounts for mobile top bar; pb-16 for mobile bottom nav */}
-      <main className="flex-1 overflow-y-auto pt-14 pb-16 md:ml-[220px] md:pt-0 md:pb-0">
+      {/* On mobile: clear the bottom nav (4rem) + iOS home bar. On md+: no bottom padding needed. */}
+      <main className="flex-1 overflow-y-auto pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:ml-[220px] md:pt-0 md:pb-0">
         {children}
       </main>
     </div>

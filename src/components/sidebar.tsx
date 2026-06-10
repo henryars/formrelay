@@ -11,6 +11,7 @@ import {
   Zap,
   LogOut,
   LayoutDashboard,
+  Puzzle,
 } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,8 @@ const navItems = [
   { href: "/dashboard/websites",    icon: Globe,           label: "Websites"  },
   { href: "/dashboard/forms",       icon: FileText,        label: "Forms"     },
   { href: "/dashboard/submissions", icon: Inbox,           label: "Inbox"     },
-  { href: "/dashboard/spam",        icon: ShieldAlert,     label: "Spam"      },
+  { href: "/dashboard/spam",         icon: ShieldAlert,     label: "Spam"         },
+  { href: "/dashboard/integrations", icon: Puzzle,          label: "Integrations" },
 ];
 
 const bottomNavItems = [
@@ -140,7 +142,10 @@ export function Sidebar({
       </aside>
 
       {/* ── Mobile top bar ── */}
-      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[#ececee] bg-white/95 backdrop-blur px-5 md:hidden">
+      <header
+        className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-[#ececee] bg-white/95 backdrop-blur px-5 md:hidden"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-[10px] bg-[#09090b]">
             <Zap className="h-3.5 w-3.5 text-white" />
@@ -155,7 +160,11 @@ export function Sidebar({
       </header>
 
       {/* ── Mobile bottom navigation ── */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex h-16 border-t border-[#ececee] bg-white/95 backdrop-blur md:hidden">
+      {/* pt-2 holds the icon+label area; pb accounts for iOS home indicator via safe-area-inset-bottom */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-[#ececee] bg-white/95 backdrop-blur md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -164,7 +173,7 @@ export function Sidebar({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+                "flex flex-1 flex-col items-center justify-center gap-1 py-3 text-[10px] font-medium transition-colors",
                 active ? "text-[#09090b]" : "text-[#a1a1aa]"
               )}
             >

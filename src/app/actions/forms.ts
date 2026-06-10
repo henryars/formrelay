@@ -101,6 +101,45 @@ export async function createWebsiteAction(
   redirect(`/dashboard/websites/${website.id}`);
 }
 
+// Onboarding variant — redirects back to onboarding flow after website creation
+export async function createWebsiteOnboardingAction(
+  _prevState: EntityFormState,
+  formData: FormData,
+): Promise<EntityFormState> {
+  const { workspace } = await requireWorkspace();
+
+  const parsed = websiteSchema.safeParse({
+    websiteName: formData.get("websiteName"),
+    websiteUrl: formData.get("websiteUrl"),
+    defaultRecipientEmail: formData.get("defaultRecipientEmail"),
+    allowedDomains: formData.get("allowedDomains"),
+    defaultSuccessRedirect: "",
+    timezone: formData.get("timezone"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the details" };
+  }
+
+  const allowedDomains = (parsed.data.allowedDomains ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+  await prisma.website.create({
+    data: {
+      workspaceId: workspace.id,
+      websiteName: parsed.data.websiteName,
+      websiteUrl: parsed.data.websiteUrl,
+      defaultRecipientEmail: parsed.data.defaultRecipientEmail,
+      allowedDomains,
+      timezone: parsed.data.timezone || null,
+    },
+  });
+
+  redirect("/dashboard/onboarding");
+}
+
 export async function createFormInboxAction(
   _prevState: EntityFormState,
   formData: FormData,

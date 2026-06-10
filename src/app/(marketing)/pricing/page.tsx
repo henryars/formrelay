@@ -155,14 +155,23 @@ export default function PricingPage() {
                 <div>
                   <p className="text-sm font-semibold text-[#0098f2]">{plan.name}</p>
                   <div className="mt-4 flex items-end gap-1.5">
-                    <span className={`text-5xl font-bold tracking-tight ${plan.highlighted ? "text-white" : "text-midnight-ink"}`}>
+                    <span
+                      className="text-5xl font-bold tracking-tight"
+                      style={{ color: plan.highlighted ? "#ffffff" : "#09090b" }}
+                    >
                       {plan.price}
                     </span>
-                    <span className={`mb-2 text-sm font-medium ${plan.highlighted ? "text-white/40" : "text-[#a1a1aa]"}`}>
+                    <span
+                      className="mb-2 text-sm font-medium"
+                      style={{ color: plan.highlighted ? "rgba(255,255,255,0.5)" : "#a1a1aa" }}
+                    >
                       {plan.priceNote}
                     </span>
                   </div>
-                  <p className={`mt-3 text-sm leading-6 ${plan.highlighted ? "text-white/60" : "text-[#71717a]"}`}>
+                  <p
+                    className="mt-3 text-sm leading-6"
+                    style={{ color: plan.highlighted ? "rgba(255,255,255,0.65)" : "#71717a" }}
+                  >
                     {plan.description}
                   </p>
                 </div>
@@ -171,13 +180,13 @@ export default function PricingPage() {
                   {plan.features.map((f) => (
                     <div key={f} className="flex items-start gap-2.5 text-sm">
                       <CheckCircle2 className={`h-4 w-4 mt-0.5 shrink-0 ${plan.highlighted ? "text-[#0098f2]" : "text-[#16a34a]"}`} />
-                      <span className={plan.highlighted ? "text-white/80" : "text-[#52525b]"}>{f}</span>
+                      <span style={{ color: plan.highlighted ? "rgba(255,255,255,0.88)" : "#52525b" }}>{f}</span>
                     </div>
                   ))}
                   {plan.missing.map((f) => (
                     <div key={f} className="flex items-start gap-2.5 text-sm">
-                      <X className={`h-4 w-4 mt-0.5 shrink-0 ${plan.highlighted ? "text-white/20" : "text-[#d4d4d8]"}`} />
-                      <span className={plan.highlighted ? "text-white/30" : "text-[#a1a1aa]"}>{f}</span>
+                      <X className={`h-4 w-4 mt-0.5 shrink-0`} style={{ color: plan.highlighted ? "rgba(255,255,255,0.25)" : "#d4d4d8" }} />
+                      <span style={{ color: plan.highlighted ? "rgba(255,255,255,0.35)" : "#a1a1aa" }}>{f}</span>
                     </div>
                   ))}
                 </div>

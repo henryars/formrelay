@@ -55,8 +55,9 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 </Link>
                 <Link
                   href="/signup"
-                  className="hidden sm:inline-flex items-center gap-2 rounded-full bg-[#09090b] px-5 py-2.5 text-sm font-medium text-white"
+                  className="hidden sm:inline-flex items-center gap-2 rounded-full bg-[#09090b] px-5 py-2.5 text-sm font-medium"
                   style={{
+                    color: "#ffffff",
                     boxShadow:
                       "rgba(255,255,255,0.5) 0px 0.5px 0px 0px inset, rgba(117,123,133,0.4) 0px 9px 14px -5px inset, rgb(44,46,52) 0px 0px 0px 1.5px, rgba(0,0,0,0.14) 0px 4px 6px 0px",
                   }}
