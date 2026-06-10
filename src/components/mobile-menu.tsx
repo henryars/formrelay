@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Menu, X, Zap } from "lucide-react";
 
@@ -17,8 +18,8 @@ export function MobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
         <Menu className="h-5 w-5" />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      {open && createPortal(
+        <div className="fixed inset-0 z-50 flex flex-col bg-snow">
           <div className="flex items-center justify-between border-b border-[#f0f0f0] px-6 py-5">
             <Link
               href="/"
@@ -70,7 +71,8 @@ export function MobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
               </Link>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -137,11 +137,6 @@ export default function Home() {
         <div className="pointer-events-none absolute -right-40 top-10 h-[500px] w-[500px] rounded-full bg-[#ede9fe]/40 blur-[120px]" />
 
         <div className="relative mx-auto flex w-full max-w-[1200px] flex-col items-center text-center gap-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#d4d4d8] bg-white px-4 py-1.5 text-sm font-medium text-[#52525b] shadow-sm">
-            <Zap className="h-3.5 w-3.5 text-[#0098f2]" />
-            Works with every website builder
-          </div>
-
           <h1
             className="max-w-3xl text-balance font-bold leading-[1.08] tracking-[-0.04em] text-[#09090b]"
             style={{ fontSize: "clamp(2.4rem, 5vw, 4rem)" }}
