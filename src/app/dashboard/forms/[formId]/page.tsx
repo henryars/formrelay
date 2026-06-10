@@ -20,6 +20,9 @@ import { TabsContent } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
+const FORM_TABS = ["overview", "settings", "spam", "mapping"] as const;
+type FormTab = (typeof FORM_TABS)[number];
+
 export default async function FormDetailPage({
   params,
   searchParams,
@@ -30,7 +33,8 @@ export default async function FormDetailPage({
   const { workspace } = await requireWorkspace();
   const { formId } = await params;
   const { tab } = await searchParams;
-  const activeTab = ["overview", "settings", "spam", "mapping"].includes(tab ?? "") ? tab! : "overview";
+  const activeTab: FormTab =
+    tab && FORM_TABS.includes(tab as FormTab) ? (tab as FormTab) : "overview";
 
   const form = await prisma.formInbox.findFirst({
     where: { id: formId, website: { workspaceId: workspace.id } },

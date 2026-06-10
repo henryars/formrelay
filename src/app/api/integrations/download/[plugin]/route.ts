@@ -48,8 +48,9 @@ export async function GET(
   addDirToZip(zip, entry.dir, folderName);
 
   const buffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  const zipBytes = new Uint8Array(buffer);
 
-  return new NextResponse(buffer, {
+  return new NextResponse(zipBytes, {
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="${entry.zipName}"`,
