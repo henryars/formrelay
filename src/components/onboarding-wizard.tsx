@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, ChevronDown, Zap, Globe, FileText, ArrowRight } from "lucide-react";
 
 import { createWebsiteOnboardingAction, createFormInboxAction } from "@/app/actions/forms";
+import { normalizeUrl } from "@/lib/utils";
 
 type Website = { id: string; websiteName: string };
 
@@ -26,6 +27,9 @@ function FieldRow({ label, hint, children }: { label: string; hint?: string; chi
   );
 }
 
+const inputClass =
+  "w-full rounded-[12px] border border-[#e4e4e7] bg-white px-3.5 py-2.5 text-sm text-[#09090b] outline-none focus:border-[#0098f2] focus:ring-2 focus:ring-[#0098f2]/10 placeholder:text-[#a1a1aa] transition-colors";
+
 function Input({ name, type = "text", placeholder, required }: {
   name: string; type?: string; placeholder?: string; required?: boolean;
 }) {
@@ -35,7 +39,26 @@ function Input({ name, type = "text", placeholder, required }: {
       type={type}
       placeholder={placeholder}
       required={required}
-      className="w-full rounded-[12px] border border-[#e4e4e7] bg-white px-3.5 py-2.5 text-sm text-[#09090b] outline-none focus:border-[#0098f2] focus:ring-2 focus:ring-[#0098f2]/10 placeholder:text-[#a1a1aa] transition-colors"
+      className={inputClass}
+    />
+  );
+}
+
+// URL input that accepts a scheme-less domain and prepends https:// on blur.
+function UrlInput({ name, placeholder, required }: {
+  name: string; placeholder?: string; required?: boolean;
+}) {
+  return (
+    <input
+      name={name}
+      type="text"
+      inputMode="url"
+      placeholder={placeholder}
+      required={required}
+      onBlur={(e) => {
+        e.currentTarget.value = normalizeUrl(e.currentTarget.value);
+      }}
+      className={inputClass}
     />
   );
 }
@@ -84,11 +107,11 @@ function CreateWebsiteStep() {
       <FieldRow label="Website name" hint="A name you'll recognise in the dashboard.">
         <Input name="websiteName" placeholder="My Restaurant Website" required />
       </FieldRow>
-      <FieldRow label="Website URL" hint="The domain where your forms are hosted.">
-        <Input name="websiteUrl" type="url" placeholder="https://mysite.com" required />
+      <FieldRow label="Website URL" hint="The domain where your forms are hosted. https:// is added automatically.">
+        <UrlInput name="websiteUrl" placeholder="mysite.com" required />
       </FieldRow>
-      <FieldRow label="Notification email" hint="Where you want to receive messages by default.">
-        <Input name="defaultRecipientEmail" type="email" placeholder="hello@mysite.com" required />
+      <FieldRow label="Notification email(s)" hint="Comma-separated. Where you want to receive messages by default.">
+        <Input name="defaultRecipientEmails" type="text" placeholder="hello@mysite.com, team@mysite.com" required />
       </FieldRow>
 
       {/* Advanced */}

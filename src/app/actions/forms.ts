@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { requireWorkspace } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isValidEmail, normalizeUrl, parseEmailList } from "@/lib/utils";
 
 export type EntityFormState = {
   error?: string;
@@ -16,11 +17,70 @@ export type EntityFormState = {
 const websiteSchema = z.object({
   websiteName: z.string().min(2, "Website name is required"),
   websiteUrl: z.url("Enter a valid website URL"),
-  defaultRecipientEmail: z.string().email("Enter a valid recipient email"),
+  defaultRecipientEmails: z.string().min(3, "At least one notification email is required"),
   allowedDomains: z.string().optional(),
   defaultSuccessRedirect: z.union([z.literal(""), z.url("Enter a valid success redirect URL")]).optional(),
   timezone: z.string().optional(),
 });
+
+type WebsiteData = {
+  websiteName: string;
+  websiteUrl: string;
+  defaultRecipientEmails: string[];
+  allowedDomains: string[];
+  defaultSuccessRedirect: string | null;
+  timezone: string | null;
+};
+
+// Shared parsing for create / onboarding / update — normalizes the URL (so a
+// scheme-less "mysite.com" is accepted) and validates the comma-separated emails.
+function parseWebsiteFormData(
+  formData: FormData,
+): { error: string } | { data: WebsiteData } {
+  // formData.get() returns null for fields not present in the submitted form
+  // (e.g. collapsed "Advanced options"). Zod's .optional() rejects null, so
+  // coerce every value to a string first.
+  const str = (name: string) => (formData.get(name) as string | null) ?? "";
+  const rawRedirect = str("defaultSuccessRedirect");
+
+  const parsed = websiteSchema.safeParse({
+    websiteName: str("websiteName"),
+    websiteUrl: normalizeUrl(str("websiteUrl")),
+    defaultRecipientEmails: str("defaultRecipientEmails"),
+    allowedDomains: str("allowedDomains"),
+    defaultSuccessRedirect: rawRedirect ? normalizeUrl(rawRedirect) : "",
+    timezone: str("timezone"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Please check the website details" };
+  }
+
+  const defaultRecipientEmails = parseEmailList(parsed.data.defaultRecipientEmails);
+  if (!defaultRecipientEmails.length) {
+    return { error: "Add at least one notification email" };
+  }
+  const invalid = defaultRecipientEmails.find((email) => !isValidEmail(email));
+  if (invalid) {
+    return { error: `"${invalid}" is not a valid email address` };
+  }
+
+  const allowedDomains = (parsed.data.allowedDomains ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return {
+    data: {
+      websiteName: parsed.data.websiteName,
+      websiteUrl: parsed.data.websiteUrl,
+      defaultRecipientEmails,
+      allowedDomains,
+      defaultSuccessRedirect: parsed.data.defaultSuccessRedirect || null,
+      timezone: parsed.data.timezone || null,
+    },
+  };
+}
 
 const formSchema = z.object({
   websiteId: z.string().min(1, "Choose a website"),
@@ -66,35 +126,13 @@ export async function createWebsiteAction(
 ): Promise<EntityFormState> {
   const { workspace } = await requireWorkspace();
 
-  const parsed = websiteSchema.safeParse({
-    websiteName: formData.get("websiteName"),
-    websiteUrl: formData.get("websiteUrl"),
-    defaultRecipientEmail: formData.get("defaultRecipientEmail"),
-    allowedDomains: formData.get("allowedDomains"),
-    defaultSuccessRedirect: formData.get("defaultSuccessRedirect"),
-    timezone: formData.get("timezone"),
-  });
-
-  if (!parsed.success) {
-    return {
-      error: parsed.error.issues[0]?.message ?? "Please check the website details",
-    };
-  }
-
-  const allowedDomains = (parsed.data.allowedDomains ?? "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const result = parseWebsiteFormData(formData);
+  if ("error" in result) return { error: result.error };
 
   const website = await prisma.website.create({
     data: {
       workspaceId: workspace.id,
-      websiteName: parsed.data.websiteName,
-      websiteUrl: parsed.data.websiteUrl,
-      defaultRecipientEmail: parsed.data.defaultRecipientEmail,
-      allowedDomains,
-      defaultSuccessRedirect: parsed.data.defaultSuccessRedirect || null,
-      timezone: parsed.data.timezone || null,
+      ...result.data,
     },
   });
 
@@ -108,32 +146,13 @@ export async function createWebsiteOnboardingAction(
 ): Promise<EntityFormState> {
   const { workspace } = await requireWorkspace();
 
-  const parsed = websiteSchema.safeParse({
-    websiteName: formData.get("websiteName"),
-    websiteUrl: formData.get("websiteUrl"),
-    defaultRecipientEmail: formData.get("defaultRecipientEmail"),
-    allowedDomains: formData.get("allowedDomains"),
-    defaultSuccessRedirect: "",
-    timezone: formData.get("timezone"),
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Please check the details" };
-  }
-
-  const allowedDomains = (parsed.data.allowedDomains ?? "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
+  const result = parseWebsiteFormData(formData);
+  if ("error" in result) return { error: result.error };
 
   await prisma.website.create({
     data: {
       workspaceId: workspace.id,
-      websiteName: parsed.data.websiteName,
-      websiteUrl: parsed.data.websiteUrl,
-      defaultRecipientEmail: parsed.data.defaultRecipientEmail,
-      allowedDomains,
-      timezone: parsed.data.timezone || null,
+      ...result.data,
     },
   });
 
@@ -146,14 +165,17 @@ export async function createFormInboxAction(
 ): Promise<EntityFormState> {
   const { workspace } = await requireWorkspace();
 
+  // formData.get() is null for fields absent from the submission (e.g. the
+  // collapsed "Advanced options"); fall back to the same defaults the UI shows.
+  const get = (name: string) => (formData.get(name) as string | null) ?? "";
   const parsed = formSchema.safeParse({
-    websiteId: formData.get("websiteId"),
-    formName: formData.get("formName"),
-    recipientEmails: formData.get("recipientEmails"),
-    successRedirectUrl: formData.get("successRedirectUrl"),
-    spamProtectionLevel: formData.get("spamProtectionLevel"),
-    websiteProtectionMode: formData.get("websiteProtectionMode"),
-    formType: formData.get("formType"),
+    websiteId: get("websiteId"),
+    formName: get("formName"),
+    recipientEmails: get("recipientEmails"),
+    successRedirectUrl: get("successRedirectUrl"),
+    spamProtectionLevel: get("spamProtectionLevel") || "STANDARD",
+    websiteProtectionMode: get("websiteProtectionMode") || "STANDARD",
+    formType: get("formType") || "CONTACT",
   });
 
   if (!parsed.success) {
@@ -268,18 +290,8 @@ export async function updateWebsiteAction(
   const websiteId = formData.get("websiteId") as string;
   if (!websiteId) return { error: "Missing website ID" };
 
-  const parsed = websiteSchema.safeParse({
-    websiteName: formData.get("websiteName"),
-    websiteUrl: formData.get("websiteUrl"),
-    defaultRecipientEmail: formData.get("defaultRecipientEmail"),
-    allowedDomains: formData.get("allowedDomains"),
-    defaultSuccessRedirect: formData.get("defaultSuccessRedirect"),
-    timezone: formData.get("timezone"),
-  });
-
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Please check the website details" };
-  }
+  const result = parseWebsiteFormData(formData);
+  if ("error" in result) return { error: result.error };
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
@@ -287,21 +299,9 @@ export async function updateWebsiteAction(
 
   if (!website) return { error: "Website not found" };
 
-  const allowedDomains = (parsed.data.allowedDomains ?? "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-
   await prisma.website.update({
     where: { id: websiteId },
-    data: {
-      websiteName: parsed.data.websiteName,
-      websiteUrl: parsed.data.websiteUrl,
-      defaultRecipientEmail: parsed.data.defaultRecipientEmail,
-      allowedDomains,
-      defaultSuccessRedirect: parsed.data.defaultSuccessRedirect || null,
-      timezone: parsed.data.timezone || null,
-    },
+    data: result.data,
   });
 
   return { message: "Website updated." };

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, normalizeUrl } from "@/lib/utils";
 
 import type { EntityFormState } from "@/app/actions/forms";
 
@@ -205,7 +205,15 @@ export function EntityForm({ action, submitLabel, fields, hiddenFields }: Entity
             <Input
               id={field.name}
               name={field.name}
-              type={(field as { type?: string }).type ?? "text"}
+              type={(field as { type?: string }).type === "url" ? "text" : (field as { type?: string }).type ?? "text"}
+              inputMode={(field as { type?: string }).type === "url" ? "url" : undefined}
+              onBlur={
+                (field as { type?: string }).type === "url"
+                  ? (e) => {
+                      e.currentTarget.value = normalizeUrl(e.currentTarget.value);
+                    }
+                  : undefined
+              }
               placeholder={(field as { placeholder?: string }).placeholder}
               defaultValue={field.defaultValue}
               required={

@@ -47,7 +47,7 @@ async function main() {
               {
                 websiteName: "The Web Disciples",
                 websiteUrl: "https://thewebdisciples.com",
-                defaultRecipientEmail: "hello@thewebdisciples.com",
+                defaultRecipientEmails: ["hello@thewebdisciples.com"],
                 allowedDomains: ["thewebdisciples.com", "www.thewebdisciples.com"],
                 timezone: "Africa/Lagos",
                 forms: {
@@ -69,7 +69,7 @@ async function main() {
               {
                 websiteName: "Laundry Growth",
                 websiteUrl: "https://laundrygrowth.co",
-                defaultRecipientEmail: "sales@laundrygrowth.co",
+                defaultRecipientEmails: ["sales@laundrygrowth.co"],
                 allowedDomains: ["laundrygrowth.co"],
                 timezone: "Africa/Lagos",
                 forms: {
@@ -388,7 +388,7 @@ async function main() {
     await prisma.emailLog.create({
       data: {
         submissionId: sub.id,
-        recipientEmail: lead.website.defaultRecipientEmail,
+        recipientEmail: lead.website.defaultRecipientEmails[0],
         emailSubject: `New message from ${lead.name} — ${lead.form.formName}`,
         emailStatus: "SENT",
         sesMessageId: `ses_demo_lead_${lead.daysAgo}`,

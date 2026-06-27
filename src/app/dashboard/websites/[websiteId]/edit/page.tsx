@@ -84,9 +84,16 @@ export default async function EditWebsitePage({
                 name: "websiteUrl",
                 label: "Website URL",
                 type: "url",
-                placeholder: "https://mysite.com",
+                placeholder: "mysite.com",
                 defaultValue: website.websiteUrl,
-                hint: "The domain where your forms are hosted.",
+                hint: "The domain where your forms are hosted. https:// is added automatically.",
+              },
+              {
+                name: "defaultRecipientEmails",
+                label: "Notification email(s)",
+                placeholder: "hello@mysite.com, team@mysite.com",
+                defaultValue: website.defaultRecipientEmails.join(", "),
+                hint: "Comma-separated. Where submissions are emailed by default.",
               },
               {
                 name: "allowedDomains",

@@ -137,7 +137,7 @@ model Website {
   workspaceId            String
   websiteName            String
   websiteUrl             String
-  defaultRecipientEmail  String
+  defaultRecipientEmails String[]
   allowedDomains         String[]
   defaultSuccessRedirect String?
   timezone               String?

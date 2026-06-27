@@ -69,8 +69,14 @@ export default async function NewWebsitePage() {
                 name: "websiteUrl",
                 label: "Website URL",
                 type: "url",
-                placeholder: "https://mysite.com",
-                hint: "The domain where your forms are hosted.",
+                placeholder: "mysite.com",
+                hint: "The domain where your forms are hosted. https:// is added automatically.",
+              },
+              {
+                name: "defaultRecipientEmails",
+                label: "Notification email(s)",
+                placeholder: "hello@mysite.com, team@mysite.com",
+                hint: "Comma-separated. Where submissions are emailed by default.",
               },
               {
                 name: "allowedDomains",
